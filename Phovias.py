@@ -258,11 +258,48 @@ def vendor_menu():
         else:
             print("❌ Pilihan tidak valid!\n")
           
+def add_camera():
+    print("\n=== TAMBAH KAMERA ===")
+    name = input("Nama kamera: ")
+    category = input("Kategori kamera: ")
+
+    new_id = cameras[-1]["id"] + 1 if cameras else 1
+
+    cameras.append({
+        "id": new_id,
+        "name": name,
+        "category": category
+    })
+
+    print(f"✨ Kamera '{name}' berhasil ditambahkan!")
+
+
+def delete_camera():
+    print("\n=== HAPUS KAMERA ===")
+    list_all_cameras()
+
+    cid = input("Masukkan ID kamera: ")
+
+    if not cid.isdigit():
+        print("❌ ID tidak valid!")
+        return
+
+    cid = int(cid)
+
+    for cam in cameras:
+        if cam["id"] == cid:
+            cameras.remove(cam)
+            print(f"🗑️ Kamera '{cam['name']}' berhasil dihapus!")
+            return
+
+    print("❌ Kamera tidak ditemukan!")
+
+          
+          
           
 # =========================
 # RUN PROGRAM
 # =========================
 if __name__ == "__main__":
     main_menu()
-
 
