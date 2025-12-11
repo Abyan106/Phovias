@@ -156,16 +156,82 @@ def main_menu():
         else:
             print("❌ Pilihan tidak valid!\n")
 
-
 # =========================
-# RUN PROGRAM
+# ADMIN MENU
 # =========================
-if __name__ == "__main__":
-    main_menu()
+
+def admin_menu():
+    while True:
+        print("\n=== MENU ADMIN ===")
+        print("1. Lihat Semua User & Vendor")
+        print("2. Hapus Akun User/Vendor")
+        print("3. Lihat Histori Penyewaan")
+        print("4. Lihat Histori Transaksi")
+        print("5. Logout")
+
+        choice = input("Pilih menu: ")
+
+        if choice == "1":
+            list_all_users()
+        elif choice == "2":
+            delete_account()
+        elif choice == "3":
+            view_rental_history()
+        elif choice == "4":
+            view_transaction_history()
+        elif choice == "5":
+            print("👋 Keluar dari menu admin.\n")
+            break
+        else:
+            print("❌ Pilihan tidak valid!\n")
+
+def list_all_users():
+    print("\n=== DAFTAR USER & VENDOR ===")
+    for u in users:
+        print(f"- ID {u['id']} | {u['name']} ({u['role']})")
 
 
+def delete_account():
+    list_all_users()
+    uid = input("Masukkan ID akun yang ingin dihapus: ")
+
+    if not uid.isdigit():
+        print("❌ ID tidak valid!")
+        return
+
+    uid = int(uid)
+    for u in users:
+        if u["id"] == uid:
+            if u["role"] == "admin":
+                print("❌ Admin tidak boleh menghapus admin lainnya!")
+                return
+            users.remove(u)
+            print(f"🗑️ Akun '{u['name']}' berhasil dihapus.")
+            return
+
+    print("❌ Akun tidak ditemukan!")
 
 
+def view_rental_history():
+    print("\n=== HISTORI PENYEWAAN ===")
+    if not rental_history:
+        print("Belum ada histori penyewaan.")
+        return
+
+    for h in rental_history:
+        print(f"- {h}")
+
+
+def view_transaction_history():
+    print("\n=== HISTORI TRANSAKSI ===")
+    if not transaction_history:
+        print("Belum ada transaksi.")
+        return
+
+    for t in transaction_history:
+        print(f"- {t}")
+            
+          
 # =========================
 # VENDOR MENU
 # =========================
@@ -191,4 +257,12 @@ def vendor_menu():
             break
         else:
             print("❌ Pilihan tidak valid!\n")
-# testing
+          
+          
+# =========================
+# RUN PROGRAM
+# =========================
+if __name__ == "__main__":
+    main_menu()
+
+
