@@ -22,6 +22,9 @@ cameras = [
     {"id": 4, "name": "Fujifilm X100V", "category": "Compact"},
 ]
 
+# Histori (didefinisikan agar tidak error saat diakses)
+rental_history = []
+transaction_history = []
 
 # =========================
 # USER AUTH FUNCTIONS
@@ -91,7 +94,7 @@ def search_camera():
 
     for cam in cameras:
         if key in cam["name"].lower():
-            print(f"- {cam['name']} ({cam['category']})")
+            print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
             found = True
 
     if not found:
@@ -116,45 +119,14 @@ def list_categories():
     print(f"\n=== KAMERA KATEGORI {selected} ===")
     for cam in cameras:
         if cam["category"] == selected:
-            print(f"- {cam['name']}")
+            print(f"- ID {cam['id']} | {cam['name']}")
 
 
 def list_all_cameras():
     print("\n=== SEMUA KAMERA ===")
     for cam in cameras:
-        print(f"- {cam['name']} ({cam['category']})")
+        print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
 
-
-# =========================
-# MAIN MENU
-# =========================
-
-def main_menu():
-    while True:
-        print("\n=== PHOVIAS CAMERA CARE ===")
-        print("1. Login")
-        print("2. Registrasi")
-        print("3. Keluar")
-
-        choice = input("Pilih menu: ")
-
-        if choice == "1":
-            user = login_user()
-            if user:
-                if user["role"] == "user":
-                    user_menu()
-                else:
-                    print(f"👉 Menu {user['role']} belum dibuat.\n")
-
-        elif choice == "2":
-            register_user()
-
-        elif choice == "3":
-            print("Terima kasih telah menggunakan Phovias!")
-            break
-
-        else:
-            print("❌ Pilihan tidak valid!\n")
 
 # =========================
 # ADMIN MENU
@@ -184,6 +156,7 @@ def admin_menu():
             break
         else:
             print("❌ Pilihan tidak valid!\n")
+
 
 def list_all_users():
     print("\n=== DAFTAR USER & VENDOR ===")
@@ -230,8 +203,8 @@ def view_transaction_history():
 
     for t in transaction_history:
         print(f"- {t}")
-            
-          
+
+
 # =========================
 # VENDOR MENU
 # =========================
@@ -256,8 +229,9 @@ def vendor_menu():
             print("👋 Keluar dari menu vendor.\n")
             break
         else:
-            print("❌ Pilihan tidak valid!\n")
-          
+            print("❌ Pilihan tidak valid!\n")
+
+
 def add_camera():
     print("\n=== TAMBAH KAMERA ===")
     name = input("Nama kamera: ")
@@ -294,17 +268,44 @@ def delete_camera():
 
     print("❌ Kamera tidak ditemukan!")
 
-          
+# =========================
+# MAIN MENU
+# =========================
+
+def main_menu():
+    while True:
+        print("\n=== PHOVIAS CAMERA CARE ===")
+        print("1. Login")
+        print("2. Registrasi")
+        print("3. Keluar")
+
+        choice = input("Pilih menu: ")
+
+        if choice == "1":
+            user = login_user()
+            if user:
+                if user["role"] == "user":
+                    user_menu()
+                elif user["role"] == "admin":
+                    admin_menu()
+                elif user["role"] == "vendor":
+                    vendor_menu()
+                else:
+                    print(f"👉 Role '{user['role']}' belum punya menu.\n")
+
+        elif choice == "2":
+            register_user()
+
+        elif choice == "3":
+            print("Terima kasih telah menggunakan Phovias!")
+            break
+
+        else:
+            print("❌ Pilihan tidak valid!\n")
 
 
-          
 # =========================
 # RUN PROGRAM
 # =========================
-if user:
-    if user["role"] == "user":
-        user_menu()
-    elif user["role"] == "admin":
-        admin_menu()
-    elif user["role"] == "vendor":
-        vendor_menu()
+if __name__ == "__main__":
+    main_menu()
