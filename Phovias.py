@@ -295,11 +295,16 @@ def delete_camera():
     print("❌ Kamera tidak ditemukan!")
 
           
-          
+
+
           
 # =========================
 # RUN PROGRAM
 # =========================
-if __name__ == "__main__":
-    main_menu()
-
+if user:
+    if user["role"] == "user":
+        user_menu()
+    elif user["role"] == "admin":
+        admin_menu()
+    elif user["role"] == "vendor":
+        vendor_menu()
