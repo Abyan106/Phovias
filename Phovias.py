@@ -8,12 +8,16 @@
 # Dzaky Hafidz Naufal
 # ==========================================
 
-users = [
-    {"id": 1, "name": "Admin", "role": "admin", "password": "admin123"},
-    {"id": 2, "name": "Riko", "role": "vendor", "password": "vendor123"},
-]
+import pandas as pd
+import os
 
-next_user_id = 3
+FILE_PATH = "users.csv"
+
+def load_users():
+    if not os.path.exists(FILE_PATH):
+        df = pd.DataFrame(columns=["id", "name", "role", "password"])
+        df.to_csv(FILE_PATH, index=False)
+    return pd.read_csv(FILE_PATH)
 
 cameras = [
     {"id": 1, "name": "Canon EOS R6", "category": "Mirrorless"},
@@ -47,14 +51,18 @@ def register_user():
 
 
 def login_user():
+    df = load_users()
+
     print("\n=== LOGIN ===")
     name = input("Nama: ")
     password = input("Password: ")
 
-    for u in users:
-        if u["name"] == name and u["password"] == password:
-            print(f"✅ Login berhasil! Halo, {u['name']} ({u['role']})\n")
-            return u
+    user = df[(df["name"] == name) & (df["password"] == password)]
+
+    if not user.empty:
+        u = user.iloc[0]
+        print(f"✅ Login berhasil! Halo, {u['name']} ({u['role']})\n")
+        return u.to_dict()
 
     print("❌ Nama atau password salah!\n")
     return None
