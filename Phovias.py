@@ -35,17 +35,29 @@ transaction_history = []
 # =========================
 
 def register_user():
-    global next_user_id
+    df = load_users()
+
     print("\n=== REGISTRASI USER BARU ===")
     name = input("Masukkan nama: ")
     password = input("Masukkan password: ")
 
-    users.append({
-        "id": next_user_id,
+    if name in df["name"].values:
+        print("❌ Nama sudah terdaftar!\n")
+        return
+
+    new_id = df["id"].max() + 1 if not df.empty else 1
+
+    new_user = {
+        "id": new_id,
         "name": name,
         "role": "user",
         "password": password
-    })
+    }
+
+    df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
+    df.to_csv(FILE_PATH, index=False)
+
+    print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
     next_user_id += 1
     print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
 
@@ -167,13 +179,23 @@ def admin_menu():
 
 
 def list_all_users():
+    df = load_users()
+
     print("\n=== DAFTAR USER & VENDOR ===")
-    for u in users:
-        print(f"- ID {u['id']} | {u['name']} ({u['role']})")
+
+    if df.empty:
+        print("📭 Belum ada user.")
+        return
+
+    for _, row in df.iterrows():
+        print(f"- ID {row['id']} | {row['name']} ({row['role']})")
+
 
 
 def delete_account():
+    df = load_users()
     list_all_users()
+
     uid = input("Masukkan ID akun yang ingin dihapus: ")
 
     if not uid.isdigit():
@@ -181,16 +203,22 @@ def delete_account():
         return
 
     uid = int(uid)
-    for u in users:
-        if u["id"] == uid:
-            if u["role"] == "admin":
-                print("❌ Admin tidak boleh menghapus admin lainnya!")
-                return
-            users.remove(u)
-            print(f"🗑️ Akun '{u['name']}' berhasil dihapus.")
-            return
 
-    print("❌ Akun tidak ditemukan!")
+    user = df[df["id"] == uid]
+
+    if user.empty:
+        print("❌ ID tidak ditemukan!")
+        return
+
+    if user.iloc[0]["role"] == "admin":
+        print("❌ Admin tidak boleh menghapus admin lainnya!")
+        return
+
+    df = df[df["id"] != uid]
+    df.to_csv(FILE_PATH, index=False)
+
+    print(f"🗑️ Akun '{user.iloc[0]['name']}' berhasil dihapus.")
+
 
 
 def view_rental_history():
