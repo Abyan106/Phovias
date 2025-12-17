@@ -37,7 +37,20 @@ transaction_history = []
 def register_user():
     df = load_users()
 
-    print("\n=== REGISTRASI USER BARU ===")
+    print("\n=== REGISTRASI AKUN ===")
+    print("1. User")
+    print("2. Vendor")
+
+    pilihan = input("Daftar sebagai (1/2): ")
+
+    if pilihan == "1":
+        role = "user"
+    elif pilihan == "2":
+        role = "vendor"
+    else:
+        print("❌ Pilihan tidak valid!")
+        return
+
     name = input("Masukkan nama: ")
     password = input("Masukkan password: ")
 
@@ -45,19 +58,20 @@ def register_user():
         print("❌ Nama sudah terdaftar!\n")
         return
 
-    new_id = df["id"].max() + 1
+    new_id = df["id"].max() + 1 if not df.empty else 1
 
     new_user = {
         "id": new_id,
         "name": name,
-        "role": "user",
+        "role": role,
         "password": password
     }
 
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
 
-    print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
+    print(f"✅ Registrasi berhasil sebagai {role}! Selamat datang, {name}.\n")
+
 
 
 
