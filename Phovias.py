@@ -45,7 +45,7 @@ def register_user():
         print("❌ Nama sudah terdaftar!\n")
         return
 
-    new_id = df["id"].max() + 1 if not df.empty else 1
+    new_id = df["id"].max() + 1
 
     new_user = {
         "id": new_id,
@@ -57,9 +57,8 @@ def register_user():
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
 
-    print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
-    next_user_id += 1
     print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
+
 
 
 def login_user():
