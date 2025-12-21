@@ -13,18 +13,22 @@ import os
 
 FILE_PATH = "users.csv"
 
+CAMERA_FILE = "cameras.csv"
+
 def load_users():
     if not os.path.exists(FILE_PATH):
         df = pd.DataFrame(columns=["id", "name", "role", "password"])
         df.to_csv(FILE_PATH, index=False)
     return pd.read_csv(FILE_PATH)
 
-cameras = [
-    {"id": 1, "name": "Canon EOS R6", "category": "Mirrorless"},
-    {"id": 2, "name": "Sony A6400", "category": "Mirrorless"},
-    {"id": 3, "name": "Nikon D3500", "category": "DSLR"},
-    {"id": 4, "name": "Fujifilm X100V", "category": "Compact"},
-]
+def load_cameras():
+    if not os.path.exists(CAMERA_FILE):
+        df = pd.DataFrame(columns=["id", "name", "category", "vendor_id"])
+        df.to_csv(CAMERA_FILE, index=False)
+    return pd.read_csv(CAMERA_FILE)
+
+def save_cameras(df):
+    df.to_csv(CAMERA_FILE, index=False)
 
 # Histori (didefinisikan agar tidak error saat diakses)
 rental_history = []
@@ -309,6 +313,7 @@ def list_my_cameras(user):
     my_cameras = df[df["vendor_id"] == user["id"]]
 
     print("\n=== KAMERA SAYA ===")
+main
 
     if my_cameras.empty:
         print("📭 Belum ada kamera.")
