@@ -262,41 +262,47 @@ def view_transaction_history():
 # VENDOR MENU
 # =========================
 
-def vendor_menu():
+def vendor_menu(user):
     while True:
         print("\n=== MENU VENDOR ===")
         print("1. Tambah Kamera")
         print("2. Hapus Kamera")
-        print("3. Lihat Semua Kamera")
+        print("3. Lihat Kamera Saya")
         print("4. Logout")
 
         choice = input("Pilih menu: ")
 
         if choice == "1":
-            add_camera()
+            add_camera(user)
         elif choice == "2":
-            delete_camera()
+            delete_camera(user)
         elif choice == "3":
-            list_all_cameras()
+            list_my_cameras(user)
         elif choice == "4":
             print("👋 Keluar dari menu vendor.\n")
             break
         else:
-            print("❌ Pilihan tidak valid!\n")
+            print("❌ Pilihan tidak valid!")
 
 
-def add_camera():
+def add_camera(user):
+    df = load_cameras()
+
     print("\n=== TAMBAH KAMERA ===")
     name = input("Nama kamera: ")
     category = input("Kategori kamera: ")
 
-    new_id = cameras[-1]["id"] + 1 if cameras else 1
+    new_id = df["id"].max() + 1 if not df.empty else 1
 
-    cameras.append({
+    new_camera = {
         "id": new_id,
         "name": name,
-        "category": category
-    })
+        "category": category,
+        "vendor_id": user["id"]
+    }
+
+    df = pd.concat([df, pd.DataFrame([new_camera])], ignore_index=True)
+    save_cameras(df)
 
     print(f"✨ Kamera '{name}' berhasil ditambahkan!")
 
