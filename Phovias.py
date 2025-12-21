@@ -121,21 +121,26 @@ def user_menu():
 
 
 def search_camera():
+    df = load_cameras()
     key = input("Masukkan nama kamera: ").lower()
+
     print("\n=== HASIL PENCARIAN ===")
-    found = False
 
-    for cam in cameras:
-        if key in cam["name"].lower():
-            print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
-            found = True
+    result = df[df["name"].str.lower().str.contains(key, na=False)]
 
-    if not found:
+    if result.empty:
         print("❌ Kamera tidak ditemukan.")
+        return
+
+    for _, row in result.iterrows():
+        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
+
 
 
 def list_categories():
-    categories = sorted(list(set(cam["category"] for cam in cameras)))
+    df = load_cameras()
+
+    categories = sorted(df["category"].dropna().unique())
 
     print("\n=== KATEGORI KAMERA ===")
     for i, cat in enumerate(categories, 1):
@@ -143,22 +148,30 @@ def list_categories():
 
     pilih = input("Pilih kategori (nomor): ")
 
-    if not pilih.isdigit() or int(pilih) < 1 or int(pilih) > len(categories):
+    if not pilih.isdigit() or not (1 <= int(pilih) <= len(categories)):
         print("❌ Pilihan tidak valid!")
         return
 
     selected = categories[int(pilih) - 1]
 
     print(f"\n=== KAMERA KATEGORI {selected} ===")
-    for cam in cameras:
-        if cam["category"] == selected:
-            print(f"- ID {cam['id']} | {cam['name']}")
+    result = df[df["category"] == selected]
+
+    for _, row in result.iterrows():
+        print(f"- ID {row['id']} | {row['name']}")
 
 
 def list_all_cameras():
+    df = load_cameras()
+
     print("\n=== SEMUA KAMERA ===")
-    for cam in cameras:
-        print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
+
+    if df.empty:
+        print("📭 Belum ada kamera.")
+        return
+
+    for _, row in df.iterrows():
+        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
 
 
 # =========================
