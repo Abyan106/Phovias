@@ -313,8 +313,6 @@ def list_my_cameras(user):
     my_cameras = df[df["vendor_id"] == user["id"]]
 
     print("\n=== KAMERA SAYA ===")
-main
-
     if my_cameras.empty:
         print("📭 Belum ada kamera.")
         return
@@ -358,6 +356,7 @@ def delete_camera(user):
     df.to_csv(CAMERA_FILE, index=False)
 
     print(f"🗑️ Kamera '{target.iloc[0]['name']}' berhasil dihapus!")
+
 
 # =========================
 # MAIN MENU
