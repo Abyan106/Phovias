@@ -304,12 +304,39 @@ def add_camera(user):
     df = pd.concat([df, pd.DataFrame([new_camera])], ignore_index=True)
     save_cameras(df)
 
-    print(f"✨ Kamera '{name}' berhasil ditambahkan!")
+    print(f"✨ Kamera '{name}' berhasil ditambahkan!")
 
 
-def delete_camera():
+def list_my_cameras(user):
+    df = load_cameras()
+
+    my_cameras = df[df["vendor_id"] == user["id"]]
+
+    print("\n=== KAMERA SAYA ===")
+main
+
+    if my_cameras.empty:
+        print("📭 Belum ada kamera.")
+        return
+
+    for _, cam in my_cameras.iterrows():
+        print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
+
+
+def delete_camera(user):
+    df = load_cameras()   # baca cameras.csv ke DataFrame
+
     print("\n=== HAPUS KAMERA ===")
-    list_all_cameras()
+
+    # buat nampilin kamera yang ada di vendor ini aja
+    vendor_cameras = df[df["vendor_id"] == user["id"]]
+
+    if vendor_cameras.empty:
+        print("📭 Kamu belum punya kamera.")
+        return
+
+    for _, row in vendor_cameras.iterrows():
+        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
 
     cid = input("Masukkan ID kamera: ")
 
@@ -319,13 +346,18 @@ def delete_camera():
 
     cid = int(cid)
 
-    for cam in cameras:
-        if cam["id"] == cid:
-            cameras.remove(cam)
-            print(f"🗑️ Kamera '{cam['name']}' berhasil dihapus!")
-            return
+    # cek apakah kamera kamera nya itu dari vendor ini bukan
+    target = df[(df["id"] == cid) & (df["vendor_id"] == user["id"])]
 
-    print("❌ Kamera tidak ditemukan!")
+    if target.empty:
+        print("❌ Kamera tidak ditemukan atau bukan milikmu!")
+        return
+
+    # hapus kameranya
+    df = df[df["id"] != cid]
+    df.to_csv(CAMERA_FILE, index=False)
+
+    print(f"🗑️ Kamera '{target.iloc[0]['name']}' berhasil dihapus!")
 
 # =========================
 # MAIN MENU
