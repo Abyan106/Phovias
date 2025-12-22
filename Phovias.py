@@ -92,13 +92,14 @@ def login_user():
 # USER MENU (CAMERA)
 # =========================
 
-def user_menu():
+def user_menu(user):
     while True:
         print("\n=== MENU USER ===")
         print("1. Cari Kamera")
         print("2. Lihat Kategori Kamera")
         print("3. Lihat Semua Kamera")
-        print("4. Logout")
+        print("4. Daftar menjadi Vendor")
+        print("5. Logout")
 
         choice = input("Pilih menu: ")
 
@@ -109,6 +110,10 @@ def user_menu():
         elif choice == "3":
             list_all_cameras()
         elif choice == "4":
+            user = register_vendor(user)
+            if user["role"] == "vendor":
+                return
+        elif choice == "5":
             print("👋 Keluar dari menu user.\n")
             break
         else:
@@ -118,7 +123,7 @@ def register_vendor(user):
     df_users = load_users()
     df_vendors = load_vendors()
 
-    if user ["role"] == "vendor" : 
+    if user["role"] == "vendor": 
         print("Kamu sudah menjadi vendor")
         return user
     
@@ -143,7 +148,7 @@ def register_vendor(user):
 
     user["role"] = "vendor"
     print("Kamu berhasil berubah menjadi vendor")
-    return user
+    return vendor_entry_menu(user)
     
 
 
@@ -300,6 +305,23 @@ def view_transaction_history():
 # VENDOR MENU
 # =========================
 
+def vendor_entry_menu(user):
+    while True:
+        print("Pilih mode: ")
+        print("1. Masuk sebagai Vendor")
+        print("2. Masuk sebagai User")
+        print("3. Kembali ke menu utama")
+
+        choice = input("Pilih menu: ")
+        if choice == "1":
+            vendor_menu(user)
+        elif choice == "2":
+            user_menu(user)
+        elif choice == "3":
+            break
+        else:
+            print("❌ Pilihan tidak valid!\n")
+
 def vendor_menu(user):
     while True:
         print("\n=== MENU VENDOR ===")
@@ -413,11 +435,11 @@ def main_menu():
             user = login_user()
             if user:
                 if user["role"] == "user":
-                    user_menu()
+                    user_menu(user)
                 elif user["role"] == "admin":
                     admin_menu()
                 elif user["role"] == "vendor":
-                    vendor_menu()
+                    vendor_entry_menu(user)
                 else:
                     print(f"👉 Role '{user['role']}' belum punya menu.\n")
 
@@ -437,3 +459,4 @@ def main_menu():
 # =========================
 if __name__ == "__main__":
     main_menu()
+    
