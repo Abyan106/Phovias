@@ -12,7 +12,7 @@ import pandas as pd
 import os
 
 FILE_PATH = "users.csv"
-
+VENDOR_FILE = "vendors.csv"
 CAMERA_FILE = "cameras.csv"
 
 def load_users():
@@ -20,6 +20,12 @@ def load_users():
         df = pd.DataFrame(columns=["id", "name", "role", "password"])
         df.to_csv(FILE_PATH, index=False)
     return pd.read_csv(FILE_PATH)
+
+def load_vendors():
+    if not os.path.exists(VENDOR_FILE):
+        df = pd.DataFrame(columns=["id", "user_id", "nama_toko", "deskripsi"])
+        df.to_csv(VENDOR_FILE, index=False)
+    return pd.read_csv(VENDOR_FILE)
 
 def load_cameras():
     if not os.path.exists(CAMERA_FILE):
@@ -40,20 +46,7 @@ transaction_history = []
 
 def register_user():
     df = load_users()
-
-    print("\n=== REGISTRASI AKUN ===")
-    print("1. User")
-    print("2. Vendor")
-
-    pilihan = input("Daftar sebagai (1/2): ")
-
-    if pilihan == "1":
-        role = "user"
-    elif pilihan == "2":
-        role = "vendor"
-    else:
-        print("❌ Pilihan tidak valid!")
-        return
+    print ("=== Registrasi akun ===")
 
     name = input("Masukkan nama: ")
     password = input("Masukkan password: ")
@@ -67,16 +60,14 @@ def register_user():
     new_user = {
         "id": new_id,
         "name": name,
-        "role": role,
+        "role": "user",
         "password": password
     }
 
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
 
-    print(f"✅ Registrasi berhasil sebagai {role}! Selamat datang, {name}.\n")
-
-
+    print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
 
 
 def login_user():
@@ -122,6 +113,40 @@ def user_menu():
             break
         else:
             print("❌ Pilihan tidak valid!\n")
+
+def register_vendor(user):
+    df_users = load_users()
+    df_vendors = load_vendors()
+
+    if user ["role"] == "vendor" : 
+        print("Kamu sudah menjadi vendor")
+        return user
+    
+    print("=== Daftar menjadi vendor ===")
+    store_name = input("nama toko: ")
+    deskripsi = input ("deskrpisi toko: ")
+
+    new_id = df_vendors["id"].max() + 1 if not df_vendors.empty else 1
+
+    new_vendors = {
+        "id": new_id,
+        "user_id": user["id"],
+        "nama_toko": store_name,
+        "deskripsi": deskripsi
+    }
+
+    df_vendors = pd.concat([df_vendors, pd.DataFrame([new_vendors])], ignore_index=True)
+    df_vendors.to_csv(VENDOR_FILE,index=False)
+
+    df_users.loc [df_users["id"] == user["id"], "role"] = "vendor"
+    df_users.to_csv(FILE_PATH,index=False)
+
+    user["role"] = "vendor"
+    print("Kamu berhasil berubah menjadi vendor")
+    return user
+    
+
+
 
 
 def search_camera():
