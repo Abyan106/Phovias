@@ -12,29 +12,37 @@ import pandas as pd
 import os
 
 FILE_PATH = "users.csv"
+
+PRODUK_FILE = "produks.csv"
+
 VENDOR_FILE = "vendors.csv"
-CAMERA_FILE = "cameras.csv"
 
 def load_users():
     if not os.path.exists(FILE_PATH):
-        df = pd.DataFrame(columns=["id", "name", "role", "password"])
+        df = pd.DataFrame(columns=["id", "email", "nama_depan","nama_belakang", "role", "password","ktp"])
         df.to_csv(FILE_PATH, index=False)
     return pd.read_csv(FILE_PATH)
 
+def load_cameras():
+    if not os.path.exists(PRODUK_FILE):
+        df = pd.DataFrame(columns=["id", "vendor_id", "jenis_produk","kategori", "nama_produk", "deskripsi", "harga_sewa", "stok", "kondisi", "status"])
+        df.to_csv(PRODUK_FILE, index=False)
+    return pd.read_csv(PRODUK_FILE)
+
 def load_vendors():
     if not os.path.exists(VENDOR_FILE):
-        df = pd.DataFrame(columns=["id", "user_id", "nama_toko", "deskripsi"])
+        df = pd.DataFrame(columns=[
+            "id", "user_id", "nama_toko", "deskripsi"
+        ])
         df.to_csv(VENDOR_FILE, index=False)
     return pd.read_csv(VENDOR_FILE)
 
-def load_cameras():
-    if not os.path.exists(CAMERA_FILE):
-        df = pd.DataFrame(columns=["id", "name", "category", "vendor_id"])
-        df.to_csv(CAMERA_FILE, index=False)
-    return pd.read_csv(CAMERA_FILE)
 
 def save_cameras(df):
-    df.to_csv(CAMERA_FILE, index=False)
+    df.to_csv(PRODUK_FILE, index=False)
+
+def save_cameras(df):
+    df.to_csv(PRODUK_FILE, index=False)
 
 # Histori (didefinisikan agar tidak error saat diakses)
 rental_history = []
@@ -46,46 +54,66 @@ transaction_history = []
 
 def register_user():
     df = load_users()
-    print ("=== Registrasi akun ===")
 
-    name = input("Masukkan nama: ")
+    print("\n=== REGISTRASI AKUN ===")
+    email = input("Masukkan email: ").strip().lower()
+    nama_depan = input("Masukkan nama depan: ").strip()
+    nama_belakang = input("Masukkan nama belakang: ").strip()
+    ktp = input("Masukkan nomor KTP: ").strip()
     password = input("Masukkan password: ")
 
-    if name in df["name"].values:
-        print("❌ Nama sudah terdaftar!\n")
+    # validasi sederhana
+    if not nama_depan or not nama_belakang:
+        print("❌ Nama depan dan belakang wajib diisi!\n")
+        return
+
+    if email in df["email"].values:
+        print("❌ Email sudah terdaftar!\n")
         return
 
     new_id = df["id"].max() + 1 if not df.empty else 1
 
     new_user = {
         "id": new_id,
-        "name": name,
+        "email" : email,
+        "nama_depan": nama_depan,
+        "nama_belakang": nama_belakang,
         "role": "user",
-        "password": password
+        "password": password,
+        "ktp": ktp
     }
 
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
 
-    print(f"✅ Registrasi berhasil! Selamat datang, {name}.\n")
+    print(f"✅ Registrasi berhasil! Halo {nama_depan} {nama_belakang}, akun kamu siap dipakai.\n")
 
 
 def login_user():
     df = load_users()
 
     print("\n=== LOGIN ===")
-    name = input("Nama: ")
+    email = input("Email: ").strip()
+
+    user = df[df["email"] == email]
+
+    if user.empty:
+        print("❌ Email tidak terdaftar!\n")
+        return None
+    
     password = input("Password: ")
 
-    user = df[(df["name"] == name) & (df["password"] == password)]
+    if user.iloc[0]["password"] != password:
+        print("❌ Password salah!\n")
+        return None
 
-    if not user.empty:
-        u = user.iloc[0]
-        print(f"✅ Login berhasil! Halo, {u['name']} ({u['role']})\n")
-        return u.to_dict()
+    u = user.iloc[0]
+    print(
+        f"✅ Login berhasil! "
+        f"Halo, {u['nama_depan']} {u['nama_belakang']} ({u['role']})\n"
+    )
 
-    print("❌ Nama atau password salah!\n")
-    return None
+    return u.to_dict()
 
 
 # =========================
@@ -123,37 +151,39 @@ def register_vendor(user):
     df_users = load_users()
     df_vendors = load_vendors()
 
-    if user["role"] == "vendor": 
-        print("Kamu sudah menjadi vendor")
+    if user["role"] == "vendor":
+        print("❌ Kamu sudah menjadi vendor.\n")
         return user
-    
-    print("=== Daftar menjadi vendor ===")
-    store_name = input("nama toko: ")
-    deskripsi = input ("deskrpisi toko: ")
+
+    print("\n=== DAFTAR JADI VENDOR ===")
+    store_name = input("Nama toko: ")
+    description = input("Deskripsi toko: ")
 
     new_id = df_vendors["id"].max() + 1 if not df_vendors.empty else 1
 
-    new_vendors = {
+    new_vendor = {
         "id": new_id,
         "user_id": user["id"],
         "nama_toko": store_name,
-        "deskripsi": deskripsi
+        "deskripsi": description
     }
 
-    df_vendors = pd.concat([df_vendors, pd.DataFrame([new_vendors])], ignore_index=True)
-    df_vendors.to_csv(VENDOR_FILE,index=False)
+    # simpan data toko ke csv
+    df_vendors = pd.concat(
+        [df_vendors, pd.DataFrame([new_vendor])],
+        ignore_index=True
+    )
+    df_vendors.to_csv(VENDOR_FILE, index=False)
 
-    df_users.loc [df_users["id"] == user["id"], "role"] = "vendor"
-    df_users.to_csv(FILE_PATH,index=False)
+    # update role si user yang lagi login
+    df_users.loc[df_users["id"] == user["id"], "role"] = "vendor"
+    df_users.to_csv(FILE_PATH, index=False)
 
     user["role"] = "vendor"
-    print("Kamu berhasil berubah menjadi vendor")
-    return vendor_entry_menu(user)
+
+    print("✅ Berhasil! Kamu sekarang VENDOR dan toko sudah dibuat.\n")
+    return user
     
-
-
-
-
 def search_camera():
     df = load_cameras()
     key = input("Masukkan nama kamera: ").lower()
@@ -167,7 +197,7 @@ def search_camera():
         return
 
     for _, row in result.iterrows():
-        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
+        print(f"- ID {row['id']} | {row['name']} ({row['kategori']})")
 
 
 
@@ -205,7 +235,7 @@ def list_all_cameras():
         return
 
     for _, row in df.iterrows():
-        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
+        print(f"- ID {row['id']} | {row['name']} ({row['kategori']})")
 
 
 # =========================
@@ -348,55 +378,110 @@ def vendor_menu(user):
 def add_camera(user):
     df = load_cameras()
 
-    print("\n=== TAMBAH KAMERA ===")
-    name = input("Nama kamera: ")
-    category = input("Kategori kamera: ")
+    print("\n=== TAMBAH PRODUK ===")
+    nama_produk = input("Nama produk: ")
+
+    # PILIH JENIS PRODUK
+    while True:
+        print("\nJenis Produk:")
+        print("1. Kamera")
+        print("2. Lensa")
+        pilih = input("Pilih (1/2): ")
+
+        if pilih == "1":
+            jenis_produk = "kamera"
+            kategori_list = ["mirrorless", "dslr", "compact"]
+            break
+        elif pilih == "2":
+            jenis_produk = "lensa"
+            kategori_list = ["kit", "telephoto", "wide", "infrared"]
+            break
+        else:
+            print("❌ Pilihan tidak valid! Masukkan 1 atau 2.")
+
+    # PILIH KATEGORI (BERDASARKAN JENIS)
+    while True:
+        print("\nKategori:")
+        for i, kat in enumerate(kategori_list, 1):
+            print(f"{i}. {kat}")
+
+        pilih_kat = input("Pilih kategori: ")
+
+        if pilih_kat.isdigit() and 1 <= int(pilih_kat) <= len(kategori_list):
+            kategori = kategori_list[int(pilih_kat) - 1]
+            break
+        else:
+            print("❌ Kategori tidak valid!")
+
+    deskripsi = input("Deskripsi: ")
+    harga_sewa = input("Harga sewa: ")
+    stok = input("Stok: ")
+    kondisi = input("Kondisi: ")
+    status = "tersedia"
 
     new_id = df["id"].max() + 1 if not df.empty else 1
 
     new_camera = {
         "id": new_id,
-        "name": name,
-        "category": category,
-        "vendor_id": user["id"]
+        "vendor_id": user["id"],
+        "jenis_produk": jenis_produk,
+        "kategori": kategori,
+        "nama_produk": nama_produk,
+        "deskripsi": deskripsi,
+        "harga_sewa": harga_sewa,
+        "stok": stok,
+        "kondisi": kondisi,
+        "status": status
     }
 
     df = pd.concat([df, pd.DataFrame([new_camera])], ignore_index=True)
-    save_cameras(df)
+    df.to_csv(PRODUK_FILE, index=False)
 
-    print(f"✨ Kamera '{name}' berhasil ditambahkan!")
+    ikon = "📷" if jenis_produk == "kamera" else "🔭"
+    print(f"{ikon} {nama_produk} disimpan sebagai {jenis_produk.upper()} ({kategori})")
 
 
 def list_my_cameras(user):
     df = load_cameras()
 
-    my_cameras = df[df["vendor_id"] == user["id"]]
+    my_products = df[df["vendor_id"] == user["id"]]
 
-    print("\n=== KAMERA SAYA ===")
-    if my_cameras.empty:
-        print("📭 Belum ada kamera.")
+    print("\n=== PRODUK SAYA ===")
+
+    if my_products.empty:
+        print("📭 Belum ada produk.")
         return
 
-    for _, cam in my_cameras.iterrows():
-        print(f"- ID {cam['id']} | {cam['name']} ({cam['category']})")
+    for _, p in my_products.iterrows():
+        print(f"""
+                ID            : {p['id']}
+                Nama Produk   : {p['nama_produk']}
+                Jenis Produk  : {p['jenis_produk']}
+                Kategori      : {p['kategori']}
+                Deskripsi     : {p['deskripsi']}
+                Harga Sewa    : {p['harga_sewa']}
+                Stok          : {p['stok']}
+                Kondisi       : {p['kondisi']}
+                Status        : {p['status']}
+                ---------------------------------
+                """)
 
 
 def delete_camera(user):
-    df = load_cameras()   # baca cameras.csv ke DataFrame
+    df = load_cameras()
 
-    print("\n=== HAPUS KAMERA ===")
+    print("\n=== HAPUS PRODUK ===")
 
-    # buat nampilin kamera yang ada di vendor ini aja
-    vendor_cameras = df[df["vendor_id"] == user["id"]]
+    vendor_products = df[df["vendor_id"] == user["id"]]
 
-    if vendor_cameras.empty:
-        print("📭 Kamu belum punya kamera.")
+    if vendor_products.empty:
+        print("📭 Kamu belum punya produk.")
         return
 
-    for _, row in vendor_cameras.iterrows():
-        print(f"- ID {row['id']} | {row['name']} ({row['category']})")
+    for _, row in vendor_products.iterrows():
+        print(f"- ID {row['id']} | {row['nama_produk']} ({row['jenis_produk']} - {row['kategori']})")
 
-    cid = input("Masukkan ID kamera: ")
+    cid = input("Masukkan ID produk: ")
 
     if not cid.isdigit():
         print("❌ ID tidak valid!")
@@ -404,18 +489,18 @@ def delete_camera(user):
 
     cid = int(cid)
 
-    # cek apakah kamera kamera nya itu dari vendor ini bukan
     target = df[(df["id"] == cid) & (df["vendor_id"] == user["id"])]
 
     if target.empty:
-        print("❌ Kamera tidak ditemukan atau bukan milikmu!")
+        print("❌ Produk tidak ditemukan atau bukan milikmu!")
         return
 
-    # hapus kameranya
-    df = df[df["id"] != cid]
-    df.to_csv(CAMERA_FILE, index=False)
+    nama_produk = target.iloc[0]["nama_produk"]
 
-    print(f"🗑️ Kamera '{target.iloc[0]['name']}' berhasil dihapus!")
+    df = df[df["id"] != cid]
+    df.to_csv(PRODUK_FILE, index=False)
+
+    print(f"🗑️ Produk '{nama_produk}' berhasil dihapus!")
 
 
 # =========================
@@ -436,22 +521,19 @@ def main_menu():
             if user:
                 if user["role"] == "user":
                     user_menu(user)
-                elif user["role"] == "admin":
-                    admin_menu()
                 elif user["role"] == "vendor":
                     vendor_entry_menu(user)
-                else:
-                    print(f"👉 Role '{user['role']}' belum punya menu.\n")
+                elif user["role"] == "admin":
+                    admin_menu()
 
         elif choice == "2":
             register_user()
 
         elif choice == "3":
-            print("Terima kasih telah menggunakan Phovias!")
+            print("Terima kasih telah menggunakan Phovias.")
             break
-
         else:
-            print("❌ Pilihan tidak valid!\n")
+            print("❌ Pilihan tidak valid!")
 
 
 # =========================
