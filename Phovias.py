@@ -32,7 +32,7 @@ def load_cameras():
 def load_vendors():
     if not os.path.exists(VENDOR_FILE):
         df = pd.DataFrame(columns=[
-            "id", "user_id", "nama_toko", "deskripsi"
+            "id", "user_id", "nama_toko", "deskripsi", "alamat"
         ])
         df.to_csv(VENDOR_FILE, index=False)
     return pd.read_csv(VENDOR_FILE)
@@ -158,6 +158,7 @@ def register_vendor(user):
     print("\n=== DAFTAR JADI VENDOR ===")
     store_name = input("Nama toko: ")
     description = input("Deskripsi toko: ")
+    alamat = input("Alamat toko: ")
 
     new_id = df_vendors["id"].max() + 1 if not df_vendors.empty else 1
 
@@ -165,7 +166,8 @@ def register_vendor(user):
         "id": new_id,
         "user_id": user["id"],
         "nama_toko": store_name,
-        "deskripsi": description
+        "deskripsi": description,
+        "alamat": alamat
     }
 
     # simpan data toko ke csv
