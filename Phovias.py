@@ -17,6 +17,8 @@ PRODUK_FILE = "produks.csv"
 
 VENDOR_FILE = "vendors.csv"
 
+RENTAL_FILE = "rentals.csv"
+
 def load_users():
     if not os.path.exists(FILE_PATH):
         df = pd.DataFrame(columns=["id", "email", "nama_depan","nama_belakang", "role", "password","ktp"])
@@ -37,6 +39,13 @@ def load_vendors():
         df.to_csv(VENDOR_FILE, index=False)
     return pd.read_csv(VENDOR_FILE)
 
+def load_rentals():
+    if not os.path.exists(RENTAL_FILE):
+        df = pd.DataFrame(columns=[
+            "id", "user_id", "vendor_id", "produk_id", "tanggal_mulai", "tanggal_selesai", "catatan", "status"
+        ])
+        df.to_csv(RENTAL_FILE, index=False)
+    return pd.read_csv(RENTAL_FILE)
 
 def save_cameras(df):
     df.to_csv(PRODUK_FILE, index=False)
