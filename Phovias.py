@@ -155,6 +155,58 @@ def user_menu(user):
             break
         else:
             print("❌ Pilihan tidak valid!\n")
+            
+def view_camera_detail(cam, user):
+    print(f"""
+=== DETAIL PRODUK ===
+ID           : {cam['id']}
+Nama Produk  : {cam['nama_produk']}
+Jenis        : {cam['jenis_produk']}
+Kategori     : {cam['kategori']}
+Deskripsi    : {cam['deskripsi']}
+Harga Sewa   : {cam['harga_sewa']}
+Stok         : {cam['stok']}
+Kondisi      : {cam['kondisi']}
+Status       : {cam['status']}
+-------------------------
+""")
+
+    if cam["status"] != "tersedia" or int(cam["stok"]) <= 0:
+        print("Produk tidak tersedia untuk disewa.")
+        return
+
+    pilih = input("Mau sewa produk ini? (y/n): ").lower()
+
+    if pilih == "y":
+        ajukan_sewa(cam, user)
+        print("Proposal telah di kirim ke vendor\n")
+    elif pilih == "n":
+        print("Kembali ke menu.\n")        
+    else:
+        print("Pilihan tidak valid!!\n")
+
+def pilih_dan_baca_produk(df, user):
+    if df.empty:
+        print("Tidak ada produk.")
+        return
+
+    for _, row in df.iterrows():
+        print(f"- ID {row['id']} | {row['nama_produk']} ({row['kategori']})")
+
+    cid = input("Masukkan ID produk (atau kosong untuk batal): ")
+
+    if not cid.isdigit():
+        print("Batal.")
+        return
+
+    cid = int(cid)
+    cam = df[df["id"] == cid]
+
+    if cam.empty:
+        print("Produk tidak ditemukan.")
+        return
+
+    view_camera_detail(cam.iloc[0], user)
 
 def register_vendor(user):
     df_users = load_users()
