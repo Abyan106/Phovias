@@ -246,21 +246,65 @@ def register_vendor(user):
 
     print("✅ Berhasil! Kamu sekarang VENDOR dan toko sudah dibuat.\n")
     return user
+
+def simpan_proposal_sewa(rental):
+    df = load_rentals()
+    new_id = df["id"].max() + 1 if not df.empty else 1
+
+    rental["id"] = new_id
+    rental["status"] = "menunggu_acc"
+
+    df = pd.concat([df, pd.DataFrame([rental])], ignore_index=True)
+    df.to_csv(RENTAL_FILE, index=False)
+
+
+def ajukan_sewa(cam, user):
+    print("\n=== AJUKAN SEWA ===")
+    tgl_mulai = input("Tanggal mulai (YYYY-MM-DD): ")
+    tgl_selesai = input("Tanggal selesai (YYYY-MM-DD): ")
+    catatan = input("Catatan (opsional): ")
+
+    rental = {
+        "user_id": user["id"],
+        "produk_id": cam["id"],
+        "vendor_id": cam["vendor_id"],
+        "tanggal_mulai": tgl_mulai,
+        "tanggal_selesai": tgl_selesai,
+        "catatan": catatan,
+    }
+
+    simpan_proposal_sewa(rental)
+    print("📨 Proposal sewa dikirim ke vendor. Tunggu persetujuan.\n")
     
-def search_camera():
+def search_camera(user):
     df = load_cameras()
     key = input("Masukkan nama kamera: ").lower()
 
+    result = df[df["nama_produk"].str.lower().str.contains(key, na=False)]
+
     print("\n=== HASIL PENCARIAN ===")
+    pilih_dan_baca_produk(result, user)
 
-    result = df[df["name"].str.lower().str.contains(key, na=False)]
+def list_categories(user):
+    df = load_cameras()
 
-    if result.empty:
-        print("❌ Kamera tidak ditemukan.")
+    categories = sorted(df["kategori"].dropna().unique())
+
+    print("\n=== KATEGORI PRODUK ===")
+    for i, cat in enumerate(categories, 1):
+        print(f"{i}. {cat}")
+
+    pilih = input("Pilih kategori (nomor): ")
+
+    if not pilih.isdigit() or not (1 <= int(pilih) <= len(categories)):
+        print("❌ Pilihan tidak valid!")
         return
 
-    for _, row in result.iterrows():
-        print(f"- ID {row['id']} | {row['name']} ({row['kategori']})")
+    selected = categories[int(pilih) - 1]
+    result = df[df["kategori"] == selected]
+
+    print(f"\n=== PRODUK KATEGORI {selected.upper()} ===")
+    pilih_dan_baca_produk(result, user)
 
 
 
