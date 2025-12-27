@@ -494,6 +494,59 @@ Status       : {r['status']}
 
     print("📦 Barang berhasil dikonfirmasi diterima. Sewa resmi dimulai.")
 
+def kembalikan_kamera(user):
+    df = load_rentals()
+
+    aktif = df[
+        (df["user_id"] == user["id"]) &
+        (df["status"] == "diterima_user")
+    ]
+
+    if aktif.empty:
+        print("📭 Tidak ada kamera yang sedang kamu sewa.")
+        return
+
+    print("\n=== SEWA AKTIF ===")
+    for _, r in aktif.iterrows():
+        print(f"""
+ID Rental     : {r['id']}
+Produk ID    : {r['produk_id']}
+Vendor ID    : {r['vendor_id']}
+Tanggal Sewa : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Status       : {r['status']}
+-------------------------
+""")
+
+    rid = input("Masukkan ID rental yang ingin dikembalikan (atau kosong): ")
+    if not rid.isdigit():
+        print("❌ Batal.")
+        return
+
+    rid = int(rid)
+    idx = df[df["id"] == rid].index
+
+    if idx.empty:
+        print("❌ Rental tidak ditemukan.")
+        return
+
+    if df.loc[idx[0], "user_id"] != user["id"]:
+        print("❌ Ini bukan rental milikmu.")
+        return
+
+    if df.loc[idx[0], "status"] != "diterima_user":
+        print("❌ Rental ini belum bisa dikembalikan.")
+        return
+
+    yakin = input("Yakin ingin mengembalikan kamera? (y/n): ").lower()
+    if yakin != "y":
+        print("❌ Pengembalian dibatalkan.")
+        return
+
+    df.loc[idx, "status"] = "dikembalikan"
+    df.to_csv(RENTAL_FILE, index=False)
+
+    print("🔁 Kamera berhasil dikembalikan. Menunggu konfirmasi vendor.")
+    
 # =========================
 # ADMIN MENU
 # =========================
@@ -757,6 +810,33 @@ def delete_camera(user):
     df.to_csv(PRODUK_FILE, index=False)
 
     print(f"🗑️ Produk '{nama_produk}' berhasil dihapus!")
+    
+def proses_proposal(pid):
+    df = load_rentals()
+    idx = df[df["id"] == pid].index
+
+    if idx.empty:
+        print("❌ Proposal tidak ditemukan.")
+        return
+
+    # VALIDASI STATUS
+    if df.loc[idx[0], "status"] != "menunggu_acc":
+        print("⚠️ Proposal ini sudah diproses sebelumnya.")
+        return
+
+    pilih = input("ACC proposal ini? (y/n): ").lower()
+
+    if pilih == "y":
+        df.loc[idx, "status"] = "menunggu_pembayaran"
+        print("✅ Proposal disetujui. Menunggu pembayaran user.")
+    elif pilih == "n":
+        df.loc[idx, "status"] = "ditolak"
+        print("❌ Proposal ditolak.")
+    else:
+        print("❌ Pilihan tidak valid.")
+        return
+
+    df.to_csv(RENTAL_FILE, index=False)
 
 
 # =========================
