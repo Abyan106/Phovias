@@ -136,24 +136,33 @@ def user_menu(user):
     while True:
         print("\n=== MENU USER ===")
         print("1. Cari Kamera")
-        print("2. Lihat Kategori Kamera")
-        print("3. Lihat Semua Kamera")
-        print("4. Daftar menjadi Vendor")
-        print("5. Logout")
+        print("2. Lihat Kategori barang")
+        print("3. Lihat Semua barang")
+        print("4. Daftar jadi vendor")
+        print("5. Bayar sewa")
+        print("6. Konfirmasi terima barang")
+        print("7. Kembalikan barang")
+        print("8. Logout")
 
         choice = input("Pilih menu: ")
 
         if choice == "1":
-            search_camera()
+            search_camera(user)
         elif choice == "2":
-            list_categories()
+            list_categories(user)
         elif choice == "3":
-            list_all_cameras()
+            list_all_cameras(user)
         elif choice == "4":
             user = register_vendor(user)
             if user["role"] == "vendor":
                 return
         elif choice == "5":
+            bayar_sewa(user)
+        elif choice == "6":
+            konfirmasi_terima_barang(user)
+        elif choice == "7":
+            kembalikan_kamera(user)
+        elif choice == "8":
             print("👋 Keluar dari menu user.\n")
             break
         else:
@@ -667,7 +676,10 @@ def vendor_menu(user):
         print("1. Tambah Kamera")
         print("2. Hapus Kamera")
         print("3. Lihat Kamera Saya")
-        print("4. Logout")
+        print("4. Lihat proposal rental")
+        print("5. Kirim barang (proposal disetujui)")
+        print("6. Konfirmasi pengembalian barang")
+        print("7. Logout")
 
         choice = input("Pilih menu: ")
 
@@ -678,11 +690,16 @@ def vendor_menu(user):
         elif choice == "3":
             list_my_cameras(user)
         elif choice == "4":
+            lihat_proposal_sewa(user)
+        elif choice == "5":
+            kirim_barang(user)
+        elif choice == "6":
+            konfirmasi_pengembalian(user)
+        elif choice == "7":
             print("👋 Keluar dari menu vendor.\n")
             break
         else:
             print("❌ Pilihan tidak valid!")
-
 
 def add_camera(user):
     df = load_cameras()
@@ -690,7 +707,6 @@ def add_camera(user):
     print("\n=== TAMBAH PRODUK ===")
     nama_produk = input("Nama produk: ")
 
-    # PILIH JENIS PRODUK
     while True:
         print("\nJenis Produk:")
         print("1. Kamera")
@@ -708,7 +724,6 @@ def add_camera(user):
         else:
             print("❌ Pilihan tidak valid! Masukkan 1 atau 2.")
 
-    # PILIH KATEGORI (BERDASARKAN JENIS)
     while True:
         print("\nKategori:")
         for i, kat in enumerate(kategori_list, 1):
@@ -912,6 +927,59 @@ Status       : {r['status']} {catatan}
     df.to_csv(RENTAL_FILE, index=False)
 
     print("🚚 Barang berhasil dikirim. Menunggu konfirmasi user.")
+    
+def konfirmasi_pengembalian(user):
+    df = load_rentals()
+
+    menunggu_konfirmasi = df[
+        (df["vendor_id"] == user["id"]) &
+        (df["status"] == "dikembalikan")
+    ]
+
+    if menunggu_konfirmasi.empty:
+        print("📭 Tidak ada pengembalian yang perlu dikonfirmasi.")
+        return
+
+    print("\n=== PENGEMBALIAN MENUNGGU KONFIRMASI ===")
+    for _, r in menunggu_konfirmasi.iterrows():
+        print(f"""
+ID Rental     : {r['id']}
+Produk ID    : {r['produk_id']}
+User ID      : {r['user_id']}
+Tanggal Sewa : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Status       : {r['status']}
+-------------------------
+""")
+
+    rid = input("Masukkan ID rental yang diterima kembali (atau kosong): ")
+    if not rid.isdigit():
+        print("❌ Batal.")
+        return
+
+    rid = int(rid)
+    idx = df[df["id"] == rid].index
+
+    if idx.empty:
+        print("❌ Rental tidak ditemukan.")
+        return
+
+    if df.loc[idx[0], "vendor_id"] != user["id"]:
+        print("❌ Ini bukan rental milikmu.")
+        return
+
+    if df.loc[idx[0], "status"] != "dikembalikan":
+        print("❌ Rental ini belum bisa dikonfirmasi.")
+        return
+
+    yakin = input("Konfirmasi kamera sudah diterima? (y/n): ").lower()
+    if yakin != "y":
+        print("❌ Konfirmasi dibatalkan.")
+        return
+
+    df.loc[idx, "status"] = "selesai"
+    df.to_csv(RENTAL_FILE, index=False)
+
+    print("✅ Kamera diterima kembali. Rental dinyatakan SELESAI.")
 
 # =========================
 # MAIN MENU
