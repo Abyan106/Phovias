@@ -19,6 +19,8 @@ VENDOR_FILE = "vendors.csv"
 
 RENTAL_FILE = "rentals.csv"
 
+PEMBAYARAN_FILE = "pembayaran.csv"
+
 def load_users():
     if not os.path.exists(FILE_PATH):
         df = pd.DataFrame(columns=["id", "email", "nama_depan","nama_belakang", "role", "password","ktp"])
@@ -42,20 +44,21 @@ def load_vendors():
 def load_rentals():
     if not os.path.exists(RENTAL_FILE):
         df = pd.DataFrame(columns=[
-            "id", "user_id", "vendor_id", "produk_id", "tanggal_mulai", "tanggal_selesai", "catatan", "status"
+            "id", "user_id", "vendor_id", "produk_id", "tanggal_mulai", "tanggal_selesai", "alamat", "catatan", "total_harga", "status"
         ])
         df.to_csv(RENTAL_FILE, index=False)
     return pd.read_csv(RENTAL_FILE)
 
-def save_cameras(df):
-    df.to_csv(PRODUK_FILE, index=False)
+def load_pembayaran():
+    if not os.path.exists(PEMBAYARAN_FILE):
+        return pd.DataFrame(columns=[
+            "id", "rental_id", "total_bayar",
+            "metode", "status", "tanggal_bayar"
+        ])
+    return pd.read_csv(PEMBAYARAN_FILE)
 
 def save_cameras(df):
     df.to_csv(PRODUK_FILE, index=False)
-
-# Histori (didefinisikan agar tidak error saat diakses)
-rental_history = []
-transaction_history = []
 
 # =========================
 # USER AUTH FUNCTIONS
@@ -262,7 +265,19 @@ def ajukan_sewa(cam, user):
     print("\n=== AJUKAN SEWA ===")
     tgl_mulai = input("Tanggal mulai (YYYY-MM-DD): ")
     tgl_selesai = input("Tanggal selesai (YYYY-MM-DD): ")
+    lama_sewa = input("Lama sewa (hari): ")
+
+    if not lama_sewa.isdigit():
+        print("❌ Lama sewa harus berupa angka.")
+        return
+
+    lama_sewa = int(lama_sewa)
+
+    alamat = input("Masukan alamat untuk pengiriman: ")
     catatan = input("Catatan (opsional): ")
+
+    harga_per_hari = int(cam["harga_sewa"])
+    total_harga = harga_per_hari * lama_sewa
 
     rental = {
         "user_id": user["id"],
@@ -270,10 +285,14 @@ def ajukan_sewa(cam, user):
         "vendor_id": cam["vendor_id"],
         "tanggal_mulai": tgl_mulai,
         "tanggal_selesai": tgl_selesai,
+        "alamat": alamat,
         "catatan": catatan,
+        "total_harga": total_harga
     }
 
     simpan_proposal_sewa(rental)
+
+    print(f"💰 Total harga sewa: {total_harga}")
     print("📨 Proposal sewa dikirim ke vendor. Tunggu persetujuan.\n")
     
 def search_camera(user):
