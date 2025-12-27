@@ -363,6 +363,136 @@ def list_all_cameras():
     for _, row in df.iterrows():
         print(f"- ID {row['id']} | {row['name']} ({row['kategori']})")
 
+def bayar_sewa(user):
+    df_rental = load_rentals()
+    df_bayar = load_pembayaran()
+
+    tagihan = df_rental[
+        (df_rental["user_id"] == user["id"]) &
+        (df_rental["status"] == "menunggu_pembayaran")
+    ]
+
+    if tagihan.empty:
+        print("💤 Tidak ada sewa yang perlu dibayar.")
+        return
+
+    print("\n=== TAGIHAN SEWA ===")
+    for _, r in tagihan.iterrows():
+        print(f"""
+ID Rental     : {r['id']}
+Produk ID    : {r['produk_id']}
+Tanggal      : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Total Harga  : {r['total_harga']}
+Status       : {r['status']}
+-------------------------
+""")
+
+    rid = input("Masukkan ID rental yang ingin dibayar (atau kosong): ")
+    if not rid.isdigit():
+        print("❌ Batal.")
+        return
+
+    rid = int(rid)
+    rental = df_rental[df_rental["id"] == rid]
+
+    if rental.empty:
+        print("❌ Rental tidak ditemukan.")
+        return
+
+    print("\nMetode Pembayaran:")
+    print("1. Transfer")
+    print("2. E-Wallet")
+
+    pilih = input("Pilih metode: ")
+
+    metode_map = {
+        "1": "transfer",
+        "2": "e-wallet",
+    }
+
+    if pilih not in metode_map:
+        print("❌ Metode tidak valid.")
+        return
+
+    metode = metode_map[pilih]
+
+    tanggal_bayar = input("Tanggal bayar (YYYY-MM-DD): ").strip()
+
+    new_id = df_bayar["id"].max() + 1 if not df_bayar.empty else 1
+
+    pembayaran = {
+        "id": new_id,
+        "rental_id": rid,
+        "total_bayar": rental.iloc[0]["total_harga"],
+        "metode": metode,
+        "status": "berhasil",
+        "tanggal_bayar": tanggal_bayar
+    }
+
+    df_bayar = pd.concat(
+        [df_bayar, pd.DataFrame([pembayaran])],
+        ignore_index=True
+    )
+    df_bayar.to_csv(PEMBAYARAN_FILE, index=False)
+
+    df_rental.loc[df_rental["id"] == rid, "status"] = "dibayar"
+    df_rental.to_csv(RENTAL_FILE, index=False)
+
+    print("💰 Pembayaran berhasil! Vendor akan segera mengirim barang.")
+
+def konfirmasi_terima_barang(user):
+    df = load_rentals()
+
+    dikirim = df[
+        (df["user_id"] == user["id"]) &
+        (df["status"] == "dikirim")
+    ]
+
+    if dikirim.empty:
+        print("📭 Tidak ada barang yang perlu dikonfirmasi.")
+        return
+
+    print("\n=== BARANG DALAM PENGIRIMAN ===")
+    for _, r in dikirim.iterrows():
+        print(f"""
+ID Rental     : {r['id']}
+Produk ID    : {r['produk_id']}
+Vendor ID    : {r['vendor_id']}
+Tanggal Sewa : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Alamat       : {r['alamat']}
+Status       : {r['status']}
+-------------------------
+""")
+
+    rid = input("Masukkan ID rental yang sudah diterima (atau kosong): ")
+    if not rid.isdigit():
+        print("❌ Batal.")
+        return
+
+    rid = int(rid)
+    idx = df[df["id"] == rid].index
+
+    if idx.empty:
+        print("❌ Rental tidak ditemukan.")
+        return
+    
+    if df.loc[idx[0], "user_id"] != user["id"]:
+        print("❌ Ini bukan rental milikmu.")
+        return
+
+    if df.loc[idx[0], "status"] != "dikirim":
+        print("❌ Status rental tidak valid untuk konfirmasi.")
+        return
+
+    yakin = input("Yakin barang sudah diterima? (y/n): ").lower()
+    if yakin != "y":
+        print("❌ Konfirmasi dibatalkan.")
+        return
+
+    df.loc[idx, "status"] = "diterima_user"
+    df.to_csv(RENTAL_FILE, index=False)
+
+    print("📦 Barang berhasil dikonfirmasi diterima. Sewa resmi dimulai.")
 
 # =========================
 # ADMIN MENU
