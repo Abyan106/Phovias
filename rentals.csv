@@ -1,1 +1,2 @@
-id,user_id,vendor_id,produk_id,tanggal_mulai,tanggal_selesai,catatan,status
+id,user_id,vendor_id,produk_id,tanggal_mulai,tanggal_selesai,catatan,status,alamat,total_harga
+1,9,8,1,2007-11-30,2007-12-2,packing daun,selesai,jalan monitor,300000

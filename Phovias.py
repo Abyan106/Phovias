@@ -69,6 +69,9 @@ def register_user():
 
     print("\n=== REGISTRASI AKUN ===")
     email = input("Masukkan email: ").strip().lower()
+    if email in df["email"].values:
+        print("❌ Email sudah terdaftar!\n")
+        return
     nama_depan = input("Masukkan nama depan: ").strip()
     nama_belakang = input("Masukkan nama belakang: ").strip()
     ktp = input("Masukkan nomor KTP: ").strip()
@@ -77,10 +80,6 @@ def register_user():
     # validasi sederhana
     if not nama_depan or not nama_belakang:
         print("❌ Nama depan dan belakang wajib diisi!\n")
-        return
-
-    if email in df["email"].values:
-        print("❌ Email sudah terdaftar!\n")
         return
 
     new_id = df["id"].max() + 1 if not df.empty else 1
@@ -334,33 +333,7 @@ def list_categories(user):
     print(f"\n=== PRODUK KATEGORI {selected.upper()} ===")
     pilih_dan_baca_produk(result, user)
 
-
-
-def list_categories():
-    df = load_cameras()
-
-    categories = sorted(df["category"].dropna().unique())
-
-    print("\n=== KATEGORI KAMERA ===")
-    for i, cat in enumerate(categories, 1):
-        print(f"{i}. {cat}")
-
-    pilih = input("Pilih kategori (nomor): ")
-
-    if not pilih.isdigit() or not (1 <= int(pilih) <= len(categories)):
-        print("❌ Pilihan tidak valid!")
-        return
-
-    selected = categories[int(pilih) - 1]
-
-    print(f"\n=== KAMERA KATEGORI {selected} ===")
-    result = df[df["category"] == selected]
-
-    for _, row in result.iterrows():
-        print(f"- ID {row['id']} | {row['name']}")
-
-
-def list_all_cameras():
+def list_all_cameras(user):
     df = load_cameras()
 
     print("\n=== SEMUA KAMERA ===")
@@ -368,9 +341,7 @@ def list_all_cameras():
     if df.empty:
         print("📭 Belum ada kamera.")
         return
-
-    for _, row in df.iterrows():
-        print(f"- ID {row['id']} | {row['name']} ({row['kategori']})")
+    pilih_dan_baca_produk(df, user)
 
 def bayar_sewa(user):
     df_rental = load_rentals()
@@ -396,6 +367,7 @@ Status       : {r['status']}
 -------------------------
 """)
 
+    #rid = rental id
     rid = input("Masukkan ID rental yang ingin dibayar (atau kosong): ")
     if not rid.isdigit():
         print("❌ Batal.")
@@ -472,7 +444,8 @@ Alamat       : {r['alamat']}
 Status       : {r['status']}
 -------------------------
 """)
-
+    
+    #rid = rental id
     rid = input("Masukkan ID rental yang sudah diterima (atau kosong): ")
     if not rid.isdigit():
         print("❌ Batal.")
@@ -551,7 +524,7 @@ Status       : {r['status']}
         print("❌ Pengembalian dibatalkan.")
         return
 
-    df.loc[idx, "status"] = "dikembalikan"
+    df.loc[idx, "status"] = "menunggu_konfirmasi"
     df.to_csv(RENTAL_FILE, index=False)
 
     print("🔁 Kamera berhasil dikembalikan. Menunggu konfirmasi vendor.")
@@ -630,24 +603,22 @@ def delete_account():
 
 
 def view_rental_history():
-    print("\n=== HISTORI PENYEWAAN ===")
-    if not rental_history:
-        print("Belum ada histori penyewaan.")
+    df = load_rentals()
+
+    print("\n=== SEMUA RIWAYAT RENTAL ===")
+
+    if df.empty:
+        print("📭 Belum ada rental.")
         return
-
-    for h in rental_history:
-        print(f"- {h}")
-
 
 def view_transaction_history():
-    print("\n=== HISTORI TRANSAKSI ===")
-    if not transaction_history:
-        print("Belum ada transaksi.")
+    df = load_pembayaran()
+
+    print("\n=== SEMUA TRANSAKSI ===")
+
+    if df.empty:
+        print("📭 Belum ada transaksi.")
         return
-
-    for t in transaction_history:
-        print(f"- {t}")
-
 
 # =========================
 # VENDOR MENU
@@ -883,7 +854,7 @@ def kirim_barang(user):
 
     siap_kirim = df[
         (df["vendor_id"] == user["id"]) &
-        (df["status"].isin(["disetujui", "dibayar"]))
+        (df["status"].isin(["menunggu_pembayaran", "dibayar"]))
     ]
 
     if siap_kirim.empty:
@@ -904,7 +875,7 @@ Tanggal      : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
 Status       : {r['status']} {catatan}
 -------------------------
 """)
-
+    #pid = proposal id
     pid = input("Masukkan ID proposal yang ingin dikirim (atau kosong): ")
 
     if not pid.isdigit():
@@ -926,7 +897,7 @@ Status       : {r['status']} {catatan}
     df.loc[idx, "status"] = "dikirim"
     df.to_csv(RENTAL_FILE, index=False)
 
-    print("🚚 Barang berhasil dikirim. Menunggu konfirmasi user.")
+    print("🚚 Barang berhasil dikirim. Menunggu konfirmasi user apabila kamera telah sampai.")
     
 def konfirmasi_pengembalian(user):
     df = load_rentals()
@@ -967,7 +938,7 @@ Status       : {r['status']}
         print("❌ Ini bukan rental milikmu.")
         return
 
-    if df.loc[idx[0], "status"] != "dikembalikan":
+    if df.loc[idx[0], "status"] != "menunggu_konfirmasi":
         print("❌ Rental ini belum bisa dikonfirmasi.")
         return
 

@@ -6,3 +6,5 @@ id,email,nama_depan,nama_belakang,role,password,ktp
 5,dzaky@gmail.com,Dzaky Hafidz,Naufal,admin,jaki,9471
 6,beli,beli,beli,user,beli,1014142
 7,tes,tes,tes,vendor,tes,tes
+8,bambang@gmail.com,bambang,gnabmab,vendor,123,555
+9,userbiasa@gmail.com,user,biasa,user,12345,777
