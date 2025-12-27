@@ -838,6 +838,80 @@ def proses_proposal(pid):
 
     df.to_csv(RENTAL_FILE, index=False)
 
+def lihat_proposal_sewa(user):
+    df = load_rentals()
+    proposals = df[df["vendor_id"] == user["id"]]
+
+    if proposals.empty:
+        print("📭 Tidak ada proposal.")
+        return
+
+    for _, r in proposals.iterrows():
+        print(f"""
+ID Proposal   : {r['id']}
+Produk ID    : {r['produk_id']}
+User ID      : {r['user_id']}
+Tanggal      : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Catatan      : {r['catatan']}
+Status       : {r['status']}
+-------------------------
+""")
+
+    pid = input("Masukkan ID proposal (atau kosong): ")
+    if not pid.isdigit():
+        return
+
+    proses_proposal(int(pid))
+
+def kirim_barang(user):
+    df = load_rentals()
+
+    siap_kirim = df[
+        (df["vendor_id"] == user["id"]) &
+        (df["status"].isin(["disetujui", "dibayar"]))
+    ]
+
+    if siap_kirim.empty:
+        print("📭 Tidak ada proposal.")
+        return
+
+    print("\n=== PROPOSAL RENTAL ===")
+    for _, r in siap_kirim.iterrows():
+        catatan = ""
+        if r["status"] != "dibayar":
+            catatan = "❗ BELUM DIBAYAR"
+
+        print(f"""
+ID Proposal   : {r['id']}
+Produk ID    : {r['produk_id']}
+User ID      : {r['user_id']}
+Tanggal      : {r['tanggal_mulai']} s/d {r['tanggal_selesai']}
+Status       : {r['status']} {catatan}
+-------------------------
+""")
+
+    pid = input("Masukkan ID proposal yang ingin dikirim (atau kosong): ")
+
+    if not pid.isdigit():
+        print("❌ Batal.")
+        return
+
+    pid = int(pid)
+    idx = df[df["id"] == pid].index
+
+    if idx.empty:
+        print("❌ Proposal tidak ditemukan.")
+        return
+
+    # VALIDASI PEMBAYARAN
+    if df.loc[idx[0], "status"] != "dibayar":
+        print("💸 Barang belum dibayar. Tidak bisa dikirim.")
+        return
+
+    df.loc[idx, "status"] = "dikirim"
+    df.to_csv(RENTAL_FILE, index=False)
+
+    print("🚚 Barang berhasil dikirim. Menunggu konfirmasi user.")
 
 # =========================
 # MAIN MENU
