@@ -8,3 +8,4 @@ id,email,nama_depan,nama_belakang,role,password,ktp
 7,tes,tes,tes,vendor,tes,tes
 8,bambang@gmail.com,bambang,gnabmab,vendor,123,555
 9,userbiasa@gmail.com,user,biasa,user,12345,777
+10,testing@gmail.com,tes,tes,vendor,tes,10231091
