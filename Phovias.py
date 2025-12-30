@@ -68,30 +68,85 @@ def register_user():
     df = load_users()
 
     print("\n=== REGISTRASI AKUN ===")
-    email = input("Masukkan email: ").strip().lower()
-    if email in df["email"].values:
-        print("❌ Email sudah terdaftar!\n")
-        return
-    nama_depan = input("Masukkan nama depan: ").strip()
-    nama_belakang = input("Masukkan nama belakang: ").strip()
-    ktp = input("Masukkan nomor KTP: ").strip()
-    password = input("Masukkan password: ")
+    while True:
+        email = input("Masukkan email (atau q untuk batal): ").strip().lower()
 
-    # validasi sederhana
-    if not nama_depan or not nama_belakang:
-        print("❌ Nama depan dan belakang wajib diisi!\n")
-        return
+        if email == "q":
+            print("❌ Registrasi dibatalkan.\n")
+            return
+
+        if "@gmail.com" not in email or not email.endswith("@gmail.com"):
+            print("❌ Email harus menggunakan @gmail.com")
+            continue
+
+        if email in df["email"].values:
+            print("❌ Email sudah terdaftar!")
+            continue
+
+        break
+    while True:
+        nama_depan = input("Masukkan nama depan (atau q): ").strip()
+
+        if nama_depan.lower() == "q":
+            print("❌ Registrasi dibatalkan.\n")
+            return
+
+        if not nama_depan.replace(" ", "").isalpha():
+            print("❌ Nama hanya boleh huruf.")
+            continue
+
+        break
+
+
+    while True:
+        nama_belakang = input("Masukkan nama belakang (atau q): ").strip()
+
+        if nama_belakang.lower() == "q":
+            print("❌ Registrasi dibatalkan.\n")
+            return
+
+        if not nama_belakang.replace(" ", "").isalpha():
+            print("❌ Nama hanya boleh huruf.")
+            continue
+
+        break
+
+    while True:
+        id_card = input("Masukkan ID Card Number (atau q): ").strip()
+
+        if id_card.lower() == "q":
+            print("❌ Registrasi dibatalkan.\n")
+            return
+
+        if not id_card.isdigit():
+            print("❌ ID Card harus berupa angka.")
+            continue
+
+        if len(id_card) < 12 or len(id_card) > 18:
+            print("❌ ID Card harus 12–18 digit.")
+            continue
+
+        break
+
+    while True:
+        password = input("Masukkan password (min 6 karakter): ")
+
+        if len(password) < 6:
+            print("❌ Password terlalu pendek.")
+            continue
+
+        break
 
     new_id = df["id"].max() + 1 if not df.empty else 1
 
     new_user = {
         "id": new_id,
-        "email" : email,
+        "email": email,
         "nama_depan": nama_depan,
         "nama_belakang": nama_belakang,
         "role": "user",
         "password": password,
-        "ktp": ktp
+        "ktp": id_card
     }
 
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
@@ -134,7 +189,7 @@ def login_user():
 def user_menu(user):
     while True:
         print("\n=== MENU USER ===")
-        print("1. Cari Kamera")
+        print("1. Cari barang")
         print("2. Lihat Kategori barang")
         print("3. Lihat Semua barang")
         if user["role"] == "vendor":
@@ -435,7 +490,7 @@ def ajukan_sewa(cam, user):
     
 def search_camera(user):
     df = load_cameras()
-    key = input("Masukkan nama kamera: ").lower()
+    key = input("Masukkan nama produk: ").lower()
 
     result = df[df["nama_produk"].str.lower().str.contains(key, na=False)]
 
@@ -466,10 +521,10 @@ def list_categories(user):
 def list_all_cameras(user):
     df = load_cameras()
 
-    print("\n=== SEMUA KAMERA ===")
+    print("\n=== SEMUA produk ===")
 
     if df.empty:
-        print("📭 Belum ada kamera.")
+        print("📭 Belum ada produk.")
         return
     pilih_dan_baca_produk(df, user)
 
@@ -615,7 +670,7 @@ def kembalikan_kamera(user):
     ]
 
     if aktif.empty:
-        print("📭 Tidak ada kamera yang sedang kamu sewa.")
+        print("📭 Tidak ada produk yang sedang kamu sewa.")
         return
 
     print("\n=== SEWA AKTIF ===")
@@ -649,7 +704,7 @@ Status       : {row['status']}
         print("❌ Rental ini belum bisa dikembalikan.")
         return
 
-    yakin = input("Yakin ingin mengembalikan kamera? (y/n): ").lower()
+    yakin = input("Yakin ingin mengembalikan barang? (y/n): ").lower()
     if yakin != "y":
         print("❌ Pengembalian dibatalkan.")
         return
@@ -657,7 +712,7 @@ Status       : {row['status']}
     df.loc[idx, "status"] = "menunggu_konfirmasi"
     df.to_csv(RENTAL_FILE, index=False)
 
-    print("🔁 Kamera berhasil dikembalikan. Menunggu konfirmasi vendor.")
+    print("🔁 barang berhasil dikembalikan. Menunggu konfirmasi vendor.")
     
 # =========================
 # ADMIN MENU
@@ -757,12 +812,12 @@ def view_transaction_history():
 def vendor_menu(user):
     while True:
         print("\n=== MENU VENDOR ===")
-        print("1. Tambah Kamera")
-        print("2. Hapus Kamera")
-        print("3. Lihat Kamera Saya")
+        print("1. Tambah produk")
+        print("2. Hapus produk")
+        print("3. Lihat produk Saya")
         print("4. Lihat proposal rental")
-        print("5. Kirim barang (proposal disetujui)")
-        print("6. Konfirmasi pengembalian barang")
+        print("5. Kirim produk (proposal disetujui)")
+        print("6. Konfirmasi pengembalian produk")
         print("7. Logout")
 
         choice = input("Pilih menu: ")
@@ -981,14 +1036,14 @@ def update_stok_kamera(produk_id, jumlah):
 
     idx = df_cam[df_cam["id"] == produk_id].index
     if idx.empty:
-        print("❌ Kamera tidak ditemukan.")
+        print("❌ produk tidak ditemukan.")
         return False
 
     stok_sekarang = int(df_cam.loc[idx[0], "stok"])
     stok_baru = stok_sekarang + jumlah
 
     if stok_baru < 0:
-        print("❌ Stok kamera habis.")
+        print("❌ Stok produk habis.")
         return False
 
     df_cam.loc[idx, "stok"] = stok_baru
@@ -1038,7 +1093,7 @@ Status       : {row['status']} {catatan}
 
     # VALIDASI PEMBAYARAN
     if df.loc[idx[0], "status"] != "dibayar":
-        print("💸 Barang belum dibayar. Tidak bisa dikirim.")
+        print("💸 produk belum dibayar. Tidak bisa dikirim.")
         return
 
     df.loc[idx, "status"] = "dikirim"
@@ -1047,10 +1102,10 @@ Status       : {row['status']} {catatan}
     produk_id = df.loc[idx[0], "produk_id"]
 
     if not update_stok_kamera(produk_id, -1):
-        print("❌ Gagal mengurangi stok kamera.")
+        print("❌ Gagal mengurangi stok produk.")
         return
 
-    print("🚚 Barang berhasil dikirim. Menunggu konfirmasi user apabila kamera telah sampai.")
+    print("🚚 Produk berhasil dikirim. Menunggu konfirmasi user apabila produk telah sampai.")
     
 def konfirmasi_pengembalian(user):
     df = load_rentals()
@@ -1095,7 +1150,7 @@ Status       : {row['status']}
         print("❌ Rental ini belum bisa dikonfirmasi.")
         return
 
-    yakin = input("Konfirmasi kamera sudah diterima? (y/n): ").lower()
+    yakin = input("Konfirmasi produk sudah diterima? (y/n): ").lower()
     if yakin != "y":
         print("❌ Konfirmasi dibatalkan.")
         return
@@ -1106,10 +1161,10 @@ Status       : {row['status']}
     produk_id = df.loc[idx[0], "produk_id"]
 
     if not update_stok_kamera(produk_id, 1):
-        print("❌ Gagal menambah stok kamera.")
+        print("❌ Gagal menambah stok produk.")
         return
 
-    print("✅ Kamera diterima kembali. Rental dinyatakan SELESAI.")
+    print("✅ produk diterima kembali. Rental dinyatakan SELESAI.")
 
 # =========================
 # MAIN MENU
