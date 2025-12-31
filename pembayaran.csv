@@ -1,3 +1,4 @@
 id,rental_id,total_bayar,metode,status,tanggal_bayar
 1,1,300000.0,transfer,berhasil,2009-11-09
 2,1,300000.0,transfer,berhasil,2007-11-30
+3,1,200000.0,transfer,berhasil,2026-12-01

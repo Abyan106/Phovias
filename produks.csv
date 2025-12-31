@@ -1,2 +1,3 @@
 id,vendor_id,jenis_produk,kategori,nama_produk,deskripsi,harga_sewa,stok,kondisi,status
-1,8,kamera,mirrorless,kenon,yaoi,100000,1,bekas,tersedia
+1,7,kamera,mirrorless,kenon,yaoi,100000,1,bekas,tersedia
+2,7,kamera,dslr,KANON,LKM,100000,2,baru,tersedia
