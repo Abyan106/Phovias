@@ -882,7 +882,8 @@ def vendor_menu(user):
         print("4. Lihat proposal rental")
         print("5. Kirim produk (proposal disetujui)")
         print("6. Konfirmasi pengembalian produk")
-        print("7. Logout")
+        print("7. Lihat semua ulasan produk")
+        print("8. Logout")
 
         choice = input("Pilih menu: ")
 
@@ -899,6 +900,8 @@ def vendor_menu(user):
         elif choice == "6":
             konfirmasi_pengembalian(user)
         elif choice == "7":
+            lihat_ulasan_vendor(user)
+        elif choice == "8":
             print("👋 Keluar dari menu vendor.\n")
             break
         else:
@@ -1176,7 +1179,7 @@ def konfirmasi_pengembalian(user):
 
     menunggu_konfirmasi = df[
         (df["vendor_id"] == user["id"]) &
-        (df["status"] == "dikembalikan")
+        (df["status"] == "menunggu_konfirmasi")
     ]
 
     if menunggu_konfirmasi.empty:
@@ -1252,7 +1255,11 @@ def lihat_ulasan_vendor(user):
         nama_produk = cam.iloc[0]["nama_produk"] if not cam.empty else "Produk"
 
         reviewer = user_df[user_df["id"] == kanan["user_id"]]
-        nama_user = reviewer.iloc[0]["nama"] if not reviewer.empty else "User"
+        if not reviewer.empty:
+            nama_user = f"{reviewer.iloc[0]['nama_depan']} {reviewer.iloc[0]['nama_belakang']}"
+        else:
+            nama_user = "User"
+
 
         print(f"""
 Produk   : {nama_produk}
