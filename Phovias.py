@@ -81,14 +81,27 @@ def register_user():
     while True:
         email = input("Masukkan email (atau q untuk batal): ").strip().lower()
 
+        # buat keluar menu registrasi
         if email == "q":
             print("❌ Registrasi dibatalkan.\n")
             return
 
-        if "@gmail.com" not in email or not email.endswith("@gmail.com"):
+        # gak bisa kosong
+        if not email:
+            print("❌ Email tidak boleh kosong.")
+            continue
+
+        # biar gak bisa @gmail.com doang
+        if email == "@gmail.com":
+            print("❌ Email tidak valid. Harus ada nama sebelum @gmail.com")
+            continue
+
+        # harus pake gmail.com
+        if not email.endswith("@gmail.com"):
             print("❌ Email harus menggunakan @gmail.com")
             continue
 
+        # kalo udah terdaftar
         if email in df["email"].values:
             print("❌ Email sudah terdaftar!")
             continue
@@ -100,6 +113,10 @@ def register_user():
         if nama_depan.lower() == "q":
             print("❌ Registrasi dibatalkan.\n")
             return
+        
+        if not nama_depan:
+            print("❌ Nama tidak boleh kosong.")
+            continue
 
         if not nama_depan.replace(" ", "").isalpha():
             print("❌ Nama hanya boleh huruf.")
@@ -107,13 +124,16 @@ def register_user():
 
         break
 
-
     while True:
         nama_belakang = input("Masukkan nama belakang (atau q): ").strip()
 
         if nama_belakang.lower() == "q":
             print("❌ Registrasi dibatalkan.\n")
             return
+        
+        if not nama_belakang:
+            print("❌ Nama tidak boleh kosong.")
+            continue
 
         if not nama_belakang.replace(" ", "").isalpha():
             print("❌ Nama hanya boleh huruf.")
@@ -127,6 +147,10 @@ def register_user():
         if id_card.lower() == "q":
             print("❌ Registrasi dibatalkan.\n")
             return
+        
+        if not id_card:
+            print("❌ ID Card tidak boleh kosong")
+            continue
 
         if not id_card.isdigit():
             print("❌ ID Card harus berupa angka.")
@@ -141,10 +165,21 @@ def register_user():
     while True:
         password = input("Masukkan password (min 6 karakter): ")
 
-        if len(password) < 6:
-            print("❌ Password terlalu pendek.")
+        if password.lower() == "q":
+                print("❌ Registrasi dibatalkan.\n")
+                return
+
+        if not password:
+            print("❌ Password tidak boleh kosong.")
             continue
 
+        if len(password) < 8:
+            print("❌ Password minimal 8 karakter.")
+            continue
+
+        if len(password) > 32:
+            print("❌ Password maksimal 32 karakter.")
+            continue
         break
 
     new_id = df["id"].max() + 1 if not df.empty else 1
