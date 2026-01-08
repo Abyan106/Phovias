@@ -85,6 +85,74 @@ def load_ratings():
 
 def save_cameras(df):
     df.to_csv(PRODUK_FILE, index=False)
+    
+def enter_to_back(message=None):
+    """
+    * Return:
+    * - None → user tekan Enter (back)
+    """
+    if message:
+        print(message)
+
+    print("\n[Enter] back")
+
+    while True:
+        pilihan = input("\n> ")
+        if pilihan == "":
+            return None
+        else:
+            print("Invalid choice")
+
+def input_atau_back(df, message, id_label="ID"):
+    """
+    * NOTE BUAT ADMIN
+    * Ini fungsi buat message kalo sebuah df (dataframe) kosong
+    *z Pemakaian return:
+    * - None = [Enter] back
+    * - "retry" = kalo inputnya invalid
+    * - int = kalo inputnya valid
+    """
+    if df.empty:
+        print(message)
+        enterback1()
+        input("\n> ")
+        return None
+    
+    pilihan = input("\n> ")
+    
+    if pilihan == "":
+        return None
+    
+    if not pilihan.isdigit():
+        print("Invalid.\n")
+        return "retry"
+    
+    pilihan = int(pilihan)
+    
+    if pilihan not in df["id"].values:
+        print(f"{id_label} not found.")
+        return "retry"
+    
+    return pilihan
+
+def confirm_action():
+    """
+    * Return:
+    * - True  -> user pilih 'y'
+    * - False -> user pilih 'n'
+    """
+    while True:
+        choice = input("\n> ").lower().strip()
+
+        if choice == "y":
+            print("Confirmed.")
+            return True
+        elif choice == "n":
+            print("Cancelled.")
+            return False
+        else:
+            print("Invalid choice.")
+            continue
 
 # =========================
 # USER AUTH FUNCTIONS
@@ -226,7 +294,7 @@ def register_user():
             continue
         break
 
-    new_id = df["id"].max() + 1 if not df.empty else 1
+    new_id = df["id"].max() + 1 if not df.empty else 91001
 
     new_user = {
         "id": new_id,
@@ -299,7 +367,13 @@ def user_menu(user):
         choice = input("\n> ")
 
         if choice == "1":
-            search_camera(user)
+            hasil = search_camera(user)
+            if hasil is None or hasil.empty:
+                enter_to_back("📭 No products found.")
+                continue
+            pilih_dan_baca_produk(hasil, user)
+            continue
+            # search_camera(user)
         elif choice == "2":
             list_categories(user)
         elif choice == "3":
@@ -330,12 +404,12 @@ def input_tanggal(label):
         if tahun.lower() == "q":
             return None
         if not tahun.isdigit():
-            print("Year must be a number.")
+            print("Year must be a number.\n")
             continue
 
         tahun = int(tahun)
         if tahun < 2026 or tahun > 2030:
-            print("Year must be between 2026 and 2030.")
+            print("Year must be between 2026 and 2030.\n")
             continue
         break
 
@@ -383,12 +457,12 @@ def input_tanggal(label):
         break
 
     return f"{tahun:04d}-{bulan:02d}-{hari:02d}"
-            
+        
+#! KELAR           
 def view_camera_detail(cam, user):
     print("\n\n\nPRODUCT DETAILS")
     print(miniliner)
-    print(f"""
-ID           : {cam['id']}
+    print(f"""ID           : {cam['id']}
 Name         : {cam['product_name']}
 Types        : {cam['product_types']}
 Category     : {cam['category']}
@@ -401,58 +475,157 @@ Status       : {cam['status']}
 
     if cam["status"] != "available" or int(cam["stock"]) <= 0:
         print("Product is not available for rent.")
-        return
+        return False
 
     print("Would you like to rent this product?")
     print("         [y] yes   [n] no")
     
-    pilih = input("\n> ").lower()
+    while True:
+        pilih = input("\n> ").lower()
 
-    if pilih == "y":
-        ajukan_sewa(cam, user)
-        print("Proposal has been sent to the vendor.\n")
-    elif pilih == "n":
-        print("Back to menu.\n")        
-    else:
-        print("Your choice is invalid.\n")
+        if pilih == "y":
+            success = ajukan_sewa(cam, user)
+            return success
+        elif pilih == "n":
+            print("Cancelled.\n")    
+            return True
+        else:
+            print("Invalid choice.")
+            continue
 
+#! KELAR
 def pilih_dan_baca_produk(df, user):
     users_df = load_users()
 
     if df.empty:
-        print("There are no products.")
+        enter_to_back("📭 There are no products.")
         return
+    while True:
+        print(f"\n\n\nSEARCH RESULTS\n{liner}")
+        for kiri, kanan in df.iterrows():
+            vendor = users_df[users_df["id"] == kanan["vendor_id"]]
 
-    for kiri, kanan in df.iterrows():
-        vendor = users_df[users_df["id"] == kanan["vendor_id"]]
+            if not vendor.empty:
+                shop_name = vendor.iloc[0].get("shop_name", "Vendor")
+            else:
+                shop_name = "Vendor"
+                
+            print(f"- ID {kanan['id']} | "
+                f"{kanan['product_name']} ({kanan['category']}) "
+                f"-  {shop_name}"
+            )
 
-        if not vendor.empty:
-            shop_name = vendor.iloc[0].get("shop_name", "Vendor")
+        opsi()
+        while True:
+            hasil = input_atau_back(
+                df, message=None, id_label="Product ID"
+            )
+            if hasil is None:
+                return
+            if hasil == "retry":
+                continue
+            cam = df[df["id"] == hasil]
+            view_camera_detail(cam.iloc[0], user)
+            break
+    
+def ajukan_sewa(cam, user):
+    print("\n\n\nRENTAL APPLICATION")
+    print(miniliner)
+    tgl_mulai = input_tanggal("Start Date")
+    if not tgl_mulai:
+        print("Rental request cancelled")
+        return False
+
+    tgl_selesai = input_tanggal("End Date")
+    if not tgl_selesai:
+        print("Rental request cancelled.")
+        return False
+    lama_sewa = input("Rental duration (days): ")
+
+    if not lama_sewa.isdigit():
+        print("Rental duration must be a number.")
+        return False
+
+    lama_sewa = int(lama_sewa)
+
+    while True:
+        print("\nReason for rental:")
+        print("1. Wedding")
+        print("2. Study")
+        print("3. Event")
+        print("4. Content / Social Media")
+        print("5. Other")
+        print("\n[q] Cancel.")
+        pilih = input("\n>: ").lower()
+
+        if pilih == "q":
+            print("Cancelled.")
+            return False
+
+        alasan_map = {
+            "1": "wedding",
+            "2": "study",
+            "3": "event",
+            "4": "content",
+            "5": "other"
+        }
+
+        if pilih in alasan_map:
+            alasan = alasan_map[pilih]
+            break
         else:
-            shop_name = "Vendor"
+            print("Invalid choice. Please select a valid reason.")
 
-        print(
-            f"- ID {kanan['id']} | "
-            f"{kanan['product_name']} ({kanan['category']}) "
-            f"-  {shop_name}"
-        )
 
-    print("\n[ID] to view product details.")
-    print("[Enter] cancel.")
-    cid = input("\n> ")
+    address = input("Shipping address: ")
+    
+    notes = ""
+    while True:
+        if alasan == "other":
+            print("[q] Cancel.")
+            notes = input("Describe your rental reason (optional): ")
+        else:
+            print("[q] Cancel.")
+            notes = input("Additional notes (optional): ")
 
-    if not cid.isdigit():
-        print("Cancelled.")
+        if notes.lower() == "q":
+            print("Cancelled.")
+            return False
+        else:
+            break
+
+    harga_per_hari = int(cam["rental_fee"])
+    total_amount = harga_per_hari * lama_sewa
+
+    rental = {
+        "user_id": user["id"],
+        "product_id": cam["id"],
+        "vendor_id": cam["vendor_id"],
+        "start_date": tgl_mulai,
+        "end_date": tgl_selesai,
+        "address": address,
+        "alasan": alasan,
+        "notes": notes,
+        "total_amount": total_amount
+    }
+
+    simpan_proposal_sewa(rental)
+
+    print(f"Total rental fee: {total_amount}")
+    print("Your rental proposal has been sent to the lender. Waiting for approval.\n")
+    return True
+
+#! KELAR    
+def search_camera(user):
+    df = load_cameras()
+    print("\nProduct name:")
+    key = input("> ").lower()
+    if key == "":
+        print("Field must be input.")
         return
-
-    cid = int(cid)
-    cam = df[df["id"] == cid]
-
-    if cam.empty:
-        print("Product not found.")
-        return
-
-    view_camera_detail(cam.iloc[0], user)
+    result = df[df["product_name"].str.lower().str.contains(key, na=False)]
+    return result
+    # pilih_dan_baca_produk(result, user)
 
 def register_vendor(user):
     df_users = load_users()
@@ -496,109 +669,13 @@ def register_vendor(user):
 
 def simpan_proposal_sewa(rental):
     df = load_rentals()
-    new_id = df["id"].max() + 1 if not df.empty else 1
+    new_id = df["id"].max() + 1 if not df.empty else 51001
 
     rental["id"] = new_id
     rental["status"] = "Waiting for approval"
 
     df = pd.concat([df, pd.DataFrame([rental])], ignore_index=True)
     df.to_csv(RENTAL_FILE, index=False)
-
-
-def ajukan_sewa(cam, user):
-    print("\n\n\nRENTAL APPLICATION")
-    print(miniliner)
-    tgl_mulai = input_tanggal("Start Date")
-    if not tgl_mulai:
-        print("Rental request cancelled")
-        return
-
-    tgl_selesai = input_tanggal("End Date")
-    if not tgl_selesai:
-        print("Rental request cancelled.")
-        return
-    lama_sewa = input("Rental duration (days): ")
-
-    if not lama_sewa.isdigit():
-        print("Rental duration must be a number.")
-        return
-
-    lama_sewa = int(lama_sewa)
-
-    while True:
-        print("\nReason for rental:")
-        print("1. Wedding")
-        print("2. Study")
-        print("3. Event")
-        print("4. Content / Social Media")
-        print("5. Other")
-        print("\n[q] Cancel.")
-        pilih = input("\n>: ").lower()
-
-        if pilih == "q":
-            print("Cancelled.")
-            return
-
-        alasan_map = {
-            "1": "wedding",
-            "2": "study",
-            "3": "event",
-            "4": "content",
-            "5": "other"
-        }
-
-        if pilih in alasan_map:
-            alasan = alasan_map[pilih]
-            break
-        else:
-            print("Invalid choice. Please select a valid reason.")
-
-
-    address = input("Shipping address: ")
-    notes = ""
-    while True:
-        if alasan == "other":
-            print("[q] Cancel.")
-            notes = input("Describe your rental reason (optional): ")
-        else:
-            print("[q] Cancel.")
-            notes = input("Additional notes (optional): ")
-
-        if notes.lower() == "q":
-            print("Cancelled.")
-            return
-        else:
-            break
-
-    harga_per_hari = int(cam["rental_fee"])
-    total_amount = harga_per_hari * lama_sewa
-
-    rental = {
-        "user_id": user["id"],
-        "product_id": cam["id"],
-        "vendor_id": cam["vendor_id"],
-        "start_date": tgl_mulai,
-        "end_date": tgl_selesai,
-        "address": address,
-        "alasan": alasan,
-        "notes": notes,
-        "total_amount": total_amount
-    }
-
-    simpan_proposal_sewa(rental)
-
-    print(f"Total rental fee: {total_amount}")
-    print("Your rental proposal has been sent to the lender. Waiting for approval.\n")
-    
-def search_camera(user):
-    df = load_cameras()
-    key = input("Product name: ").lower()
-
-    result = df[df["product_name"].str.lower().str.contains(key, na=False)]
-
-    print("SEARCH RESULTS")
-    print(miniliner)
-    pilih_dan_baca_produk(result, user)
 
 def list_categories(user):
     df = load_cameras()
@@ -652,7 +729,7 @@ def bayar_sewa(user):
     for kiri, kanan in tagihan.iterrows():
         print(f"""Rental ID    : {kanan['id']}
 Product ID   : {kanan['product_id']}
-Date         : {kanan['start_date']} s/d {kanan['end_date']}
+Date         : {kanan['start_date']} ─ {kanan['end_date']}
 Total amount : {kanan['total_amount']}
 Status       : {kanan['status']}
 -------------------------
@@ -690,7 +767,7 @@ Status       : {kanan['status']}
 
     payment_date = input("Payment date (YYYY-MM-DD): ").strip()
 
-    new_id = df_bayar["id"].max() + 1 if not df_bayar.empty else 1
+    new_id = df_bayar["id"].max() + 1 if not df_bayar.empty else 61001
 
     pembayaran = {
         "id": new_id,
@@ -707,7 +784,7 @@ Status       : {kanan['status']}
     )
     df_bayar.to_csv(PEMBAYARAN_FILE, index=False)
 
-    df_rental.loc[df_rental["id"] == rid, "status"] = "paid"
+    df_rental.loc[df_rental["id"] == rid, "status"] = "Paid"
     df_rental.to_csv(RENTAL_FILE, index=False)
 
     print("Lender will ship the item soon.")
@@ -717,7 +794,7 @@ def konfirmasi_terima_barang(user):
 
     sent = df[
         (df["user_id"] == user["id"]) &
-        (df["status"] == "sent")
+        (df["status"] == "Sent")
     ]
 
     if sent.empty:
@@ -752,7 +829,7 @@ Status        : {kanan['status']}
         print("This rental does not belong to you.")
         return
 
-    if df.loc[idx[0], "status"] != "sent":
+    if df.loc[idx[0], "status"] != "Sent":
         print("Invalid rental status for confirmation.")
         return
 
@@ -831,7 +908,7 @@ def kembalikan_kamera(user):
 Rental ID     : {kanan['id']}
 Product ID    : {kanan['product_id']}
 Vendor ID     : {kanan['vendor_id']}
-Rental date   : {kanan['start_date']} s/d {kanan['end_date']}
+Rental date   : {kanan['start_date']} ─ {kanan['end_date']}
 Status        : {kanan['status']}
 -------------------------
 """)
@@ -841,7 +918,7 @@ Status        : {kanan['status']}
     # if not rid.isdigit():
     #     print("Cancelled.")
     #     return
-    if "" in rid:
+    if rid == "":
         print("Cancelled.")
         return
     else:
@@ -899,22 +976,32 @@ Status        : {kanan['status']}
 
     print("Item returned successfully. Waiting for vendor confirmation.")
     
+    
 # =========================
-# ADMIN MENU
+# ADMIN MENU KELAAAAAAAAAAAARRRRRRRRRR
 # =========================
-
+ 
+#! KELAR    
+def print_admin_menu():
+    print(f"\n\n\n{liner}")
+    print("ADMIN MENU".center(indentasi))
+    print(liner)
+    print("1. Show all users/vendors")
+    print("2. Delete user/vendor account")
+    print("3. Rental history")
+    print("4. Transaction history")
+    print("5. Log out")
+    
 def admin_menu():
     while True:
-        print(f"\n\n\n{liner}")
-        print("ADMIN MENU".center(indentasi))
-        print(liner)
-        print("1. Show all users/vendors")
-        print("2. Delete user/vendor account")
-        print("3. Rental history")
-        print("4. Transaction history")
-        print("5. Log out")
-
-        choice = input("\n> ")
+        print_admin_menu()
+        
+        while True:
+            choice = input("\n> ")
+            if choice in {"1", "2", "3", "4", "5"}:
+                break
+            else:
+                print("Invalid choice")
 
         if choice == "1":
             list_all_users()
@@ -926,10 +1013,9 @@ def admin_menu():
             view_transaction_history()
         elif choice == "5":
             print("Logged out.\n")
-            break
-        else:
-            print("Your choice is invalid.\n")
+            return
 
+#! KELAR
 def list_all_users():
     df = load_users()
 
@@ -944,16 +1030,10 @@ def list_all_users():
     for key, value in df.iterrows():
         print(f"- ID {value['id']} | {value['name']} ({value['role']})")
     
-    enterback1()
-    back = (input("\n> "))
-    if back == "":
-        return
-    else:
-        return list_all_users()
+    enter_to_back()
 
-
-
-#! DELETION PURPOSES
+#! KELAR
+# DELETION PURPOSES
 def show_users_simple():
     df = load_users()
     for key, value in df.iterrows():
@@ -964,12 +1044,12 @@ def show_user_detail(uid):
     user = df[df["id"] == uid]
     
     if user.empty:
-        print("ID not found.")
-        return
+        enter_to_back("ID not found.")
+        return False
     
     if user.iloc[0]["role"] == "admin":
         print("You don't have permission to delete admin accounts.")
-        return
+        return False
 
     print(f"\n\n\nDETAIL ACCOUNT\n{miniliner}")
     print(f"""ID       : {user.iloc[0]['id']}
@@ -979,46 +1059,46 @@ Email    : {user.iloc[0]['email']}
 Role     : {user.iloc[0]['role']}
 ID Card  : {user.iloc[0]['ktp']}
 """)
+    return True
 
 def delete_account():
     df = load_users()
-    print(f"\n\n\nDELETE ACCOUNT\n{miniliner}")
-    show_users_simple()
-
-    print("\n[ID] account you want to delete\n[Enter] back")
-    uid = input("\n> ")
-
-    if uid == "":
-        print("You choose none...")
-        return
-    if not uid.isdigit():
-        print("ID is invalid.")
-        return
     
-    uid = int(uid)
+    while True:
+        print(f"\n\n\nDELETE ACCOUNT\n{miniliner}")
+        show_users_simple()
+        opsi()
+
+        while True:
+            hasil = input_atau_back(
+                df, "📭 No users to delete.", id_label="User ID"
+            )
+            if hasil is None:
+                return
+            if hasil == "retry":
+                continue
+            
+            uid = hasil
     
-    show_user_detail(uid)
-
-    print("Want to delete this account?")
-    print("     [y] yes   [n] no")
-
-    dchoice = input("\n> ").lower()
-    if dchoice == "n":
-        print("Cancelled.")
-        return
-    elif dchoice == "y":
-        pass
-    else:
-        print("Invalid choice.")
-        return
-
-    df = df[df["id"] != uid]
-    df.to_csv(FILE_PATH, index=False)
-
-    print(f"Account deleted.")
+            if not show_user_detail(uid):
+                continue
 
 
-#! RENTAL PURPOSES
+            print("Want to delete this account?")
+            print("     [y] yes   [n] no")
+
+            if not confirm_action():
+                continue
+
+            df = df[df["id"] != uid]
+            df.to_csv(FILE_PATH, index=False)
+
+            print(f"Account deleted.")
+            return
+
+
+#! KELAR
+# RENTAL PURPOSES
 def show_rental_simple(rentals):
     df_users = load_users()
     df_vendors = load_vendors()
@@ -1074,93 +1154,75 @@ Address      : {r['address']}
 Total Amount : Rp{r['total_amount']}
     """)
         
-        enterback1()
-        pilihan = input("\n> ")
-        if pilihan == "":
-            return
-        if not pilihan.isdigit():
-            print("ID is invalid.")
-            continue
-        pilihan = int(pilihan)
-        if not pilihan == rchoice:
-            print("Rental ID not found.")
-            continue
+        enter_to_back()
+        return
 
 def view_rental_history():
     while True:
         df = load_rentals()
 
-        print(f"\n\n\nALL RENTALS HISTORY\n{miniliner}")
+        #kalo kosong
+        print(f"\n\n\nALL RENTALS HISTORY\n{liner}")
         if df.empty:
-            print("📭 No rentals yet.")
-            enterback1()
-            rchoice = input("\n> ")
-            if rchoice == "":
-                return
-            elif rchoice != "":
-                return view_rental_history()
-            if not rchoice.isdigit():
-                print("ID is invalid.")
-                return
-        show_rental_simple(df)
-        
-        opsi()
-        rchoice = input("\n> ")
-        if rchoice == "":
+            enter_to_back("📭 No rentals yet.")
             return
-        if not rchoice.isdigit():
-            print("ID is invalid.")
-            continue
-        rchoice = int(rchoice)
-        if not show_rental_detail(rchoice):
-            continue
-            
+
+        #kalo ada
+        show_rental_simple(df)
+        opsi()
+        while True:
+            hasil = input_atau_back(
+                df, message=None, id_label="Rental ID"
+            )
+            if hasil is None:
+                return
+            if hasil == "retry":
+                continue
+            rchoice = hasil
+            break
+        
         show_rental_detail(rchoice)
-        enterback()
-        back = input("\n> ")
-        if back == "":
-            return view_rental_history()
-        if back != "":
-            return show_rental_detail(rchoice)
+        enter_to_back
 
-
-#! PAYMENT PURPOSES
+#! KELAR
+# PAYMENT PURPOSES
 def show_payment_simple(payments):
     for key, value in payments.iterrows():
         print(f"- Payment ID {value['id']} | RID {value['rental_id']}, {value['payment_date']} ({value['status']})")
 
 def show_payment_detail(pchoice):
-    df_pay = load_pembayaran()
-    df_rentals = load_rentals()
-    df_products = load_cameras()
-    df_vendors = load_vendors()
-    df_users = load_users()
-    
-    pay = df_pay[df_pay["id"] == pchoice]
-    if pay.empty:
-        print("Payment ID not found.")
-        return
-    
-    p = pay.iloc[0]
-    
-    rental = df_rentals[df_rentals["id"] == p["rental_id"]]
-    if rental.empty:
-        print("Associated rental not found.")
-        return
-    
-    r = rental.iloc[0]
-    
-    user = df_users[df_users["id"] == r["user_id"]]
-    username = user.iloc[0]["username"] if not user.empty else "Unknown User"
+    while True:
+        df_pay = load_pembayaran()
+        df_rentals = load_rentals()
+        df_products = load_cameras()
+        df_vendors = load_vendors()
+        df_users = load_users()
+        
+        pay = df_pay[df_pay["id"] == pchoice]
+        if pay.empty:
+            print("Payment ID not found.")
+            return
+        
+        p = pay.iloc[0]
+        
+        rental = df_rentals[df_rentals["id"] == p["rental_id"]]
+        if rental.empty:
+            print("Associated rental not found.")
+            return
+        
+        r = rental.iloc[0]
+        
+        user = df_users[df_users["id"] == r["user_id"]]
+        username = user.iloc[0]["username"] if not user.empty else "Unknown User"
 
-    vendor = df_vendors[df_vendors["id"] == r["vendor_id"]]
-    vendor_name = vendor.iloc[0]["shop_name"] if not vendor.empty else "Unknown Vendor"
-    
-    product = df_products[df_products["id"] == r["product_id"]]
-    product_name = product.iloc[0]["product_name"] if not product.empty else "Unknown Product"
-    
-    print(f"\n\n\nPAYMENT DETAILS\n{miniliner}")
-    print(f"""Payment ID      : {p['id']}
+        vendor = df_vendors[df_vendors["id"] == r["vendor_id"]]
+        vendor_name = vendor.iloc[0]["shop_name"] if not vendor.empty else "Unknown Vendor"
+        
+        product = df_products[df_products["id"] == r["product_id"]]
+        product_name = product.iloc[0]["product_name"] if not product.empty else "Unknown Product"
+        
+        print(f"\n\n\nPAYMENT DETAILS\n{miniliner}")
+        print(f"""Payment ID      : {p['id']}
 Rental ID       : {p['rental_id']}
 Product         : {product_name} (ID {r['product_id']})
 Vendor          : {vendor_name} (ID {r['vendor_id']})
@@ -1169,42 +1231,36 @@ Total Payment   : Rp{p['total_payment']}
 Payment Method  : {p['methods']}
 Status          : {p['status']}
 Payment Date    : {p['payment_date']}
-""")
-    
+    """)
+
+        enter_to_back()
+        return
+
 def view_transaction_history():
     while True:
         df = load_pembayaran()
 
-        print(f"\n\n\nALL TRANSACTION HISTORY\n{miniliner}")
+        print(f"\n\n\nALL TRANSACTION HISTORY\n{miniliner}")            
         if df.empty:
-            print("📭 No transaction yet.")
-            enterback1()
-            opsikan = input("\n> ")
-            if opsikan == "":
-                return 
-            if opsikan != "":
-                return view_transaction_history()
-            
-        show_payment_simple(df)
+            enter_to_back("📭 No transaction yet.")
+            return
         
+        show_payment_simple(df)
         print("\n[PID] details")
         enterback()
-        pilihan = input("\n> ")
-        if pilihan == "":
-            return
-        if not pilihan.isdigit():
-            print("PID is invalid.")
-            continue
+        while True:
+            hasil = input_atau_back(
+                df, message=None, id_label="Payment ID"
+            )
+            if hasil is None:
+                return
+            if hasil == "retry":
+                continue
+            pchoice = hasil
+            break
         
-        pilihan = int(pilihan)
-        
-        show_payment_detail(pilihan)
-        enterback()
-        back = input("\n> ")
-        if back == "":
-            return view_transaction_history()
-        if back != "":
-            return show_payment_detail(pilihan)
+        show_payment_detail(pchoice)
+        enter_to_back
 
 # =========================
 # VENDOR MENU
@@ -1241,17 +1297,19 @@ def vendor_menu(user):
         elif choice == "7":
             lihat_review_vendor(user)
         elif choice == "8":
-            print("Exiting vendor menu.\n")
+            print("Exited vendor menu.\n")
             break
         else:
             print("Your choice is invalid.\n")
 
+#! KELAR
 def add_camera(user):
     df = load_cameras()
 
     print(f"\n\n\nADD NEW PRODUCT\n{miniliner}")
     product_name = input("Product name: ")
 
+    # PRODUCT TYPES
     while True:
         print("\nProduct type:")
         print("1. Camera")
@@ -1259,50 +1317,73 @@ def add_camera(user):
         pilih = input("\n> ")
 
         if pilih == "1":
-            product_types = "kamera"
-            category_list = ["mirrorless", "dslr", "compact"]
+            product_types = "Camera"
+            category_list = ["Mirrorless", "DSLR", "Compact"]
             break
         elif pilih == "2":
-            product_types = "lensa"
-            category_list = ["kit", "telephoto", "wide", "infrared"]
+            product_types = "Lens"
+            category_list = ["Kit", "Telephoto", "Wide", "Infrared"]
             break
         else:
-            print("❌ Pilihan tidak valid! Masukkan 1 atau 2.")
+            print("Your choice is invalid.")
 
+    # CATEGORY
     while True:
-        print("\ncategory:")
+        print("\nCategory:")
         for i, kat in enumerate(category_list, 1):
             print(f"{i}. {kat}")
 
-        pilih_kat = input("Pilih category: ")
+        pilih_kat = input("\n> ")
 
         if pilih_kat.isdigit() and 1 <= int(pilih_kat) <= len(category_list):
             category = category_list[int(pilih_kat) - 1]
             break
         else:
-            print("❌ category tidak valid!")
-
-    description = input("description: ")
-    rental_fee = input("Harga sewa: ")
-    stock = input("stock: ")
+            print("Category choice is invalid.")
+            
+    # SPECIFICATION
+    print("\nSpecification: ")
+    specc = input("> ")
+    
+    # DESCRIPTION
+    print("\nDescription: ")
+    description = input("> ")
+    
+    # HARGA SEWA
+    print("\nRental fee (per day): ")
+    rental_fee = input("> ")
+    
+    # STOCK
+    print("\nStock: ")
+    stock = input("> ")
+    
+    # CONDITION
     while True:
-        print("\ncondition Produk:")
-        print("1. Baru")
-        print("2. Bekas")
-        pilih_condition = input("Pilih (1/2): ")
+        print("\nProduct condition:")
+        print("1. Excellent")
+        print("2. Good")
+        print("3. Fair")
+        pilih_condition = input("\n> ")
 
         if pilih_condition == "1":
-            condition = "baru"
+            condition = "Excellent"
             break
         elif pilih_condition == "2":
-            condition = "bekas"
+            condition = "Good"
+            break
+        elif pilih_condition == "3":
+            condition = "Fair"
             break
         else:
-            print("❌ Pilihan tidak valid! Masukkan 1 atau 2.")
+            print("Invalid choice.")
 
-    status = "available"
+    if int(stock) > 0:
+        status = "Available"
+    else:
+        status = "Unavailable"
 
-    new_id = df["id"].max() + 1 if not df.empty else 1
+
+    new_id = df["id"].max() + 1 if not df.empty else 71001
 
     new_camera = {
         "id": new_id,
@@ -1310,6 +1391,7 @@ def add_camera(user):
         "product_types": product_types,
         "category": category,
         "product_name": product_name,
+        "specification": specc,
         "description": description,
         "rental_fee": rental_fee,
         "stock": stock,
@@ -1320,62 +1402,65 @@ def add_camera(user):
     df = pd.concat([df, pd.DataFrame([new_camera])], ignore_index=True)
     df.to_csv(PRODUK_FILE, index=False)
 
-    ikon = "📷" if product_types == "kamera" else "🔭"
-    print(f"{ikon} {product_name} disimpan sebagai {product_types.upper()} ({category})")
-
+    ikon = "📷" if product_types == "Camera" else "🔭"
+    print(f"{ikon} {product_name} has been added as {product_types.lower()} ({category})")
 
 def list_my_cameras(user):
     df = load_cameras()
 
     my_products = df[df["vendor_id"] == user["id"]]
 
-    print("\n=== PRODUK SAYA ===")
+    print(f"\n\n\nPRODUCTS DETAILS\n{miniliner}")
 
     if my_products.empty:
-        print("📭 Belum ada produk.")
+        print("📭 No products available.")
         return
 
-    for kiri, p in my_products.iterrows():
-        print(f"""
-                ID            : {p['id']}
-                name Produk   : {p['product_name']}
-                Jenis Produk  : {p['product_types']}
-                category      : {p['category']}
-                description     : {p['description']}
-                Harga Sewa    : {p['rental_fee']}
-                stock          : {p['stock']}
-                condition       : {p['condition']}
-                Status        : {p['status']}
-                ---------------------------------
+    for key, value in my_products.iterrows():
+        print(f"""ID            : {value['id']}
+Name          : {value['product_name']}
+Type          : {value['product_types']}
+Category      : {value['category']}
+Specification : {value['specification']}
+Description   : {value['description']}
+Rental Fee    : {value['rental_fee']}
+Stock         : {value['stock']}
+Condition     : {value['condition']}
+Status        : {value['status']}
                 """)
-
 
 def delete_camera(user):
     df = load_cameras()
 
-    print("\n=== HAPUS PRODUK ===")
+    print(f"\n\n\nDELETE PRODUCT\n{miniliner}")
 
     vendor_products = df[df["vendor_id"] == user["id"]]
 
     if vendor_products.empty:
-        print("📭 Kamu belum punya produk.")
+        print("📭 No products available.")
         return
 
-    for kiri, kanan in vendor_products.iterrows():
-        print(f"- ID {kanan['id']} | {kanan['product_name']} ({kanan['product_types']} - {kanan['category']})")
+    for key, value in vendor_products.iterrows():
+        print(f"- ID {value['id']} | {value['product_name']} ({value['product_types']} - {value['category']})")
 
-    cid = input("Masukkan ID produk: ")
-
-    if not cid.isdigit():
-        print("❌ ID tidak valid!")
-        return
-
-    cid = int(cid)
+    while True:
+        opsi()
+        cid = input("\n> ")
+        if cid == "":
+            return
+        elif cid != "":
+            print("Invalid choice.")
+            continue
+        if not cid.isdigit():
+            print("ID is invalid.")
+            return
+        cid = int(cid)
+        break
 
     target = df[(df["id"] == cid) & (df["vendor_id"] == user["id"])]
 
     if target.empty:
-        print("❌ Produk tidak ditemukan atau bukan milikmu!")
+        print("Product not found or not owned by you.")
         return
 
     product_name = target.iloc[0]["product_name"]
@@ -1383,31 +1468,33 @@ def delete_camera(user):
     df = df[df["id"] != cid]
     df.to_csv(PRODUK_FILE, index=False)
 
-    print(f"🗑️ Produk '{product_name}' berhasil dihapus!")
+    print(f"{product_name} has been removed.")
     
 def proses_proposal(pid):
     df = load_rentals()
     idx = df[df["id"] == pid].index
 
     if idx.empty:
-        print("❌ Proposal tidak ditemukan.")
+        print("Proposal not found.")
         return
 
     # VALIDASI STATUS
     if df.loc[idx[0], "status"] != "Waiting for approval":
-        print("⚠️ Proposal ini sudah diproses sebelumnya.")
+        print("This proposal has been handled before.")
         return
 
-    pilih = input("ACC proposal ini? (y/n): ").lower()
+    print("\nApprove this rental proposal?")
+    print("     [y] yes   [n] no")
+    pilih = input("\n> ").lower()
 
     if pilih == "y":
         df.loc[idx, "status"] = "Waiting for payment"
-        print("✅ Proposal disetujui. Menunggu pembayaran user.")
+        print("Approved. Waiting for user payment.")
     elif pilih == "n":
-        df.loc[idx, "status"] = "ditolak"
-        print("❌ Proposal ditolak.")
+        df.loc[idx, "status"] = "Rejected"
+        print("Proposal rejected.")
     else:
-        print("❌ Pilihan tidak valid.")
+        print("Invalid choice.")
         return
 
     df.to_csv(RENTAL_FILE, index=False)
@@ -1417,39 +1504,44 @@ def lihat_proposal_sewa(user):
     proposals = df[df["vendor_id"] == user["id"]]
 
     if proposals.empty:
-        print("📭 Tidak ada proposal.")
+        print("📭 No proposal.")
         return
 
     for kiri, kanan in proposals.iterrows():
-        print(f"""
-ID Proposal   : {kanan['id']}
-Produk ID    : {kanan['product_id']}
+        print(f"""Proposal ID  : {kanan['id']}
+Product ID   : {kanan['product_id']}
 User ID      : {kanan['user_id']}
-Tanggal      : {kanan['start_date']} s/d {kanan['end_date']}
-notes      : {kanan['notes']}
+Date         : {kanan['start_date']} ─ {kanan['end_date']}
+Notes        : {kanan['notes']}
 Status       : {kanan['status']}
--------------------------
 """)
+    
+    while True:
+        opsi()
+        pid = input("\n> ")
+        if opsi() == "":
+            return
+        if opsi() != "":
+            continue
+        if not pid.isdigit():
+            return
 
-    pid = input("Masukkan ID proposal (atau kosong): ")
-    if not pid.isdigit():
-        return
-
-    proses_proposal(int(pid))
+        proses_proposal(int(pid))
+        break
     
 def update_stock_kamera(product_id, jumlah):
     df_cam = load_cameras()
 
     idx = df_cam[df_cam["id"] == product_id].index
     if idx.empty:
-        print("❌ produk tidak ditemukan.")
+        print("Product not found.")
         return False
 
     stock_sekarang = int(df_cam.loc[idx[0], "stock"])
     stock_baru = stock_sekarang + jumlah
 
     if stock_baru < 0:
-        print("❌ stock produk habis.")
+        print("Insufficient stock.")
         return False
 
     df_cam.loc[idx, "stock"] = stock_baru
@@ -1462,56 +1554,62 @@ def kirim_barang(user):
 
     siap_kirim = df[
         (df["vendor_id"] == user["id"]) &
-        (df["status"].isin(["Waiting for payment", "paid"]))
+        (df["status"].isin(["Waiting for payment", "Paid"]))
     ]
 
     if siap_kirim.empty:
-        print("📭 Tidak ada proposal.")
+        print("📭 No proposal.")
         return
 
-    print("\n=== PROPOSAL RENTAL ===")
-    for kiri, kanan in siap_kirim.iterrows():
+    print(f"\n\n\nRENTAL PROPOSAL\n{miniliner}")
+    for key, value in siap_kirim.iterrows():
         notes = ""
-        if kanan["status"] != "paid":
+        if value["status"] != "Paid":
             notes = "Unpaid"
 
-        print(f"""
-ID Proposal   : {kanan['id']}
-Produk ID    : {kanan['product_id']}
-User ID      : {kanan['user_id']}
-Tanggal      : {kanan['start_date']} s/d {kanan['end_date']}
-Status       : {kanan['status']} {notes}
+        print(f"""Proposal ID  : {value['id']}
+Product ID   : {value['product_id']}
+User ID      : {value['user_id']}
+Date         : {value['start_date']} ─ {value['end_date']}
+Status       : {value['status']} {notes}
 -------------------------
 """)
     #pid = proposal id
-    pid = input("Masukkan ID proposal yang ingin sent (atau kosong): ")
+    while True:
+        opsi()
+        pid = input("\n> ")
+        if pid == "":
+            return
+        if pid != "":
+            print("Invalid choice.")
+            continue
+        if not pid.isdigit():
+            print("ID is invalid.")
+            return
 
-    if not pid.isdigit():
-        print("❌ Batal.")
-        return
+        pid = int(pid)
+        idx = df[df["id"] == pid].index
 
-    pid = int(pid)
-    idx = df[df["id"] == pid].index
+        if idx.empty:
+            print("📭No proposal found.")
+            return
 
-    if idx.empty:
-        print("❌ Proposal tidak ditemukan.")
-        return
+        # VALIDASI PEMBAYARAN
+        if df.loc[idx[0], "status"] != "Paid":
+            print("The product has not been paid for yet. Cannot be sent.")
+            return
 
-    # VALIDASI PEMBAYARAN
-    if df.loc[idx[0], "status"] != "paid":
-        print("💸 produk belum dibayar. Tidak bisa sent.")
-        return
+        df.loc[idx, "status"] = "Sent"
+        df.to_csv(RENTAL_FILE, index=False)
 
-    df.loc[idx, "status"] = "sent"
-    df.to_csv(RENTAL_FILE, index=False)
+        product_id = df.loc[idx[0], "product_id"]
 
-    product_id = df.loc[idx[0], "product_id"]
+        if not update_stock_kamera(product_id, -1):
+            print("Payment not completed. Unable to send the product.")
+            return
 
-    if not update_stock_kamera(product_id, -1):
-        print("❌ Gagal mengurangi stock produk.")
-        return
-
-    print("🚚 Produk berhasil sent. Menunggu konfirmasi user apabila produk telah sampai.")
+        print("🚚 Product sent. Waiting for user confirmation upon delivery.")
+        break
     
 def konfirmasi_pengembalian(user):
     df = load_rentals()
@@ -1522,59 +1620,70 @@ def konfirmasi_pengembalian(user):
     ]
 
     if Pending_confirmation.empty:
-        print("📭 Tidak ada pengembalian yang perlu dikonfirmasi.")
+        print("📭 No pending return confirmations.")
         return
 
-    print("\n=== PENGEMBALIAN MENUNGGU KONFIRMASI ===")
-    for kiri, kanan in Pending_confirmation.iterrows():
-        print(f"""
-Rental ID     : {kanan['id']}
-Produk ID    : {kanan['product_id']}
-User ID      : {kanan['user_id']}
-Tanggal Sewa : {kanan['start_date']} s/d {kanan['end_date']}
-Status       : {kanan['status']}
--------------------------
+    print(f"\n\n\nRETURN CONFIRMATION QUEUE\n{miniliner}")
+    for key, value in Pending_confirmation.iterrows():
+        print(f"""Rental ID    : {value['id']}
+Product ID   : {value['product_id']}
+User ID      : {value['user_id']}
+Rental date  : {value['start_date']} ─ {value['end_date']}
+Status       : {value['status']}
 """)
 
-    rid = input("Masukkan Rental ID yang diterima kembali (atau kosong): ")
-    if not rid.isdigit():
-        print("❌ Batal.")
-        return
+    while True:
+        opsi()
+        rid = input("\n> ")
+        if rid == "":
+            return
+        if rid != "":
+            print("Invalid choice.")
+            continue
+        if not rid.isdigit():
+            print("Invalid Rental ID.")
+            return
 
-    rid = int(rid)
-    idx = df[df["id"] == rid].index
+        rid = int(rid)
+        idx = df[df["id"] == rid].index
 
-    if idx.empty:
-        print("❌ Rental tidak ditemukan.")
-        return
+        if idx.empty:
+            print("Rental not found.")
+            return
 
-    if df.loc[idx[0], "vendor_id"] != user["id"]:
-        print("❌ Ini bukan rental milikmu.")
-        return
+        if df.loc[idx[0], "vendor_id"] != user["id"]:
+            print("This rental is not yours.")
+            return
 
-    if df.loc[idx[0], "status"] != "Pending confirmation":
-        print("❌ Rental ini belum bisa dikonfirmasi.")
-        return
+        if df.loc[idx[0], "status"] != "Pending confirmation":
+            print("This rental cannot be confirmed yet.")
+            return
 
-    yakin = input("Konfirmasi produk sudah diterima? (y/n): ").lower()
-    if yakin != "y":
-        print("❌ Konfirmasi dibatalkan.")
-        return
+        print("Are you sure the product has been received back?")
+        print("         [y] yes       [n] no")
+        yakin = input("\n> ").lower()
+        if yakin != "y":
+            print("Cancelled.")
+            return
+        if yakin != "n" and yakin != "y":
+            print("Invalid choice.")
+            return
 
-    df.loc[idx, "status"] = "selesai"
-    df.to_csv(RENTAL_FILE, index=False)
+        df.loc[idx, "status"] = "Completed"
+        df.to_csv(RENTAL_FILE, index=False)
 
-    product_id = df.loc[idx[0], "product_id"]
+        product_id = df.loc[idx[0], "product_id"]
 
-    if not update_stock_kamera(product_id, 1):
-        print("❌ Gagal menambah stock produk.")
-        return
+        if not update_stock_kamera(product_id, 1):
+            print("Failed.")
+            return
 
-    print("✅ produk diterima kembali. Rental dinyatakan SELESAI.")
-    
+        print("Product returned. Rental completed.")
+        break
+
 def lihat_review_vendor(user):
     if user["role"] != "vendor":
-        print("❌ Fitur ini hanya untuk vendor.")
+        print("You don't have permission to view this section.")
         return
 
     rating_df = load_ratings()
@@ -1584,28 +1693,25 @@ def lihat_review_vendor(user):
     review_vendor = rating_df[rating_df["vendor_id"] == user["id"]]
 
     if review_vendor.empty:
-        print("📭 Belum ada review untuk produk kamu.")
+        print("📭 No review.")
         return
 
-    print("\n=== review PRODUK ANDA ===")
+    print(f"\n\n\nPRODUCT REVIEWS\n{miniliner}")
 
     for kiri, kanan in review_vendor.iterrows():
         cam = camera_df[camera_df["id"] == kanan["product_id"]]
-        product_name = cam.iloc[0]["product_name"] if not cam.empty else "Produk"
+        product_name = cam.iloc[0]["product_name"] if not cam.empty else "Product"
 
         reviewer = user_df[user_df["id"] == kanan["user_id"]]
         if not reviewer.empty:
-            name_user = f"{reviewer.iloc[0]['first_name']} {reviewer.iloc[0]['last_name']}"
+            name_user = f"{reviewer.iloc[0]['name']} (@{reviewer.iloc[0]['username']})"
         else:
             name_user = "User"
 
-
-        print(f"""
-Produk   : {product_name}
-Dari     : {name_user}
+        print(f"""Produk   : {product_name}
+From     : {name_user}
 Rating   : {kanan['rating']}
-review   : {kanan['review'] if kanan['review'] else '-'}
------------------------------
+Review   : {kanan['review'] if kanan['review'] else '-'}
 """)
 
 
@@ -1639,7 +1745,6 @@ def main_menu():
             break
         else:
             print("Your choice is invalid.\n")
-
 
 # =========================
 # RUN PROGRAM

@@ -10,9 +10,7 @@ id,email,name,username,role,password,ktp
 9,c,c,c,vendor,123456,321321321321
 10,d,d,d,vendor,123456,456456456456
 11,e,e,e,vendor,123456,789789789789
-12,f,f,f,vendor,123456,147147147147
-13,g,g,g,vendor,123456,258258258258
-15,i,i,i,vendor,123456,159159159159
+12,f,f,f,vendor,123,147147147147
 16,teddy@gmail.com,Teddy,mayted,vendor,bundated,123456789123
 17,ted@gmail.com,TEddy dua,mayted2,user,mayted123,123123123123
 18,mn,mn,mn,user,mn123,321321321321
