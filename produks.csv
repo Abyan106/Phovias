@@ -1,3 +1,5 @@
-id,vendor_id,jenis_produk,kategori,nama_produk,deskripsi,harga_sewa,stok,kondisi,status
-1,7,kamera,mirrorless,kenon,yaoi,100000,1,bekas,tersedia
-2,7,kamera,dslr,KANON,LKM,100000,2,baru,tersedia
+id,vendor_id,product_types,category,product_name,description,rental_fee,stock,condition,status
+1,7,kamera,mirrorless,kenon,yaoi,100000,1,bekas,available
+2,7,kamera,dslr,KANON,LKM,100000,2,baru,available
+3,12,kamera,mirrorless,Hindia,terbuang dalam waktu,10000,1,baru,available
+4,16,kamera,compact,wolpis karter,a,120000,5,baru,available

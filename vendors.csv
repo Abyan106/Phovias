@@ -1,3 +1,4 @@
-id,user_id,nama_toko,deskripsi,alamat
+id,user_id,shop_name,description,address
 1,8,bumbung,jual aki,jalan jalan
 2,10,Testingvendor,ini toko testing,di testing
+3,16,maytedted,tee,mayted
