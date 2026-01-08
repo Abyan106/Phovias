@@ -1,5 +1,2 @@
 id,rental_id,total_payment,methods,status,payment_date
-1,1,300000.0,transfer,success,2009-11-09
-2,1,300000.0,transfer,success,2007-11-30
-3,1,200000.0,transfer,success,2026-12-01
-4,4,40000.0,e-wallet,success,2026-11-25
+61001,51001,300000.0,e-wallet,success,2026-01-13
