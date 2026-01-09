@@ -2,3 +2,4 @@ id,rental_id,product_id,vendor_id,user_id,rating,review
 1,1,2,7,8,5,sangat mantap
 2,51001,71001,16,17,5,"Sangat mantap, dan amanah"
 3,51007,71005,16,19,5,gelo pisan
+4,51009,71001,16,20,5,gacor
