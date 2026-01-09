@@ -577,7 +577,7 @@ def ajukan_sewa(cam, user):
             print("Invalid choice. Please select a valid reason.")
 
 
-    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. ")
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-/ ")
 
     while True:
         address = input("Shipping address: ").strip()
@@ -760,7 +760,7 @@ def list_categories(user):
         print(f"{i}. {cat}")
 
     print("[ID] to view products.")
-    pilih = input("\n>: ")
+    pilih = input("\n> ")
 
     if not pilih.isdigit() or not (1 <= int(pilih) <= len(categories)):
         print("Your choice is invalid.")
@@ -844,7 +844,7 @@ def bayar_sewa(user):
     ]
 
     if tagihan.empty:
-        print("No rentals to be paid.")
+        enter_to_back("📭 No rentals to be paid.")
         return
 
     print("\nRENTAL CHARGES")
@@ -929,7 +929,7 @@ def konfirmasi_terima_barang(user):
     ]
 
     if sent.empty:
-        print("No items to be confirmed.")
+        enter_to_back("📭 No items to be confirmed.")
         return
 
     print(f"\n\n\nITEMS IN DELIVERY\n{miniliner}")
@@ -1030,7 +1030,7 @@ def kembalikan_kamera(user):
     ]
 
     if aktif.empty:
-        print("You are not renting any products.")
+        enter_to_back("📭 You are not renting any products.")
         return
 
     print(f"\nACTIVE RENTALS\n{miniliner}")
@@ -1614,7 +1614,7 @@ def proses_proposal(pid):
     idx = df[df["id"] == pid].index
 
     if idx.empty:
-        print("Proposal not found.")
+        enter_to_back("📭 Proposal not found.")
         return
 
     if df.loc[idx[0], "status"] != "Waiting for approval":
@@ -1650,8 +1650,7 @@ def lihat_proposal_sewa(user):
     proposals = df[df["vendor_id"] == user["id"]]
 
     if proposals.empty:
-        print("📭 No proposal.")
-        enter_to_back()
+        enter_to_back("📭 No proposal.")
         return
 
     for kiri, kanan in proposals.iterrows():
@@ -1758,8 +1757,7 @@ def konfirmasi_pengembalian(user):
     ]
 
     if pending.empty:
-        print("📭 No pending return confirmations.")
-        enter_to_back()
+        enter_to_back("📭 No pending return confirmations")
         return
 
     print(f"\n\n\nRETURN CONFIRMATION QUEUE\n{miniliner}")
@@ -1812,7 +1810,7 @@ def lihat_review_vendor(user):
     review_vendor = rating_df[rating_df["vendor_id"] == user["id"]]
 
     if review_vendor.empty:
-        print("📭 No review.")
+        enter_to_back("📭 No reviews yet.")
         return
 
     print(f"\n\n\nPRODUCT REVIEWS\n{miniliner}")
