@@ -1,6 +1,6 @@
 id,vendor_id,product_types,category,product_name,description,rental_fee,stock,condition,status,specification
 71001,16,Camera,Mirrorless,Canon meriam,Sangat amat bagus untuk kamuuh,100000,2,Excellent,Available,No fek fek ril
 71002,16,Camera,DSLR,Fuji Movie,alus pisan gelok,200000,2,Excellent,Available,Red sensor
-71003,16,Camera,Compact,Sony camera,Berwarna pisan kang,100000,2,Good,Available,LED kelap kelip
-71004,16,Lens,Kit,Lensa ciamik,no fek,50000,3,Good,Available,alus lah ieu mah
-71005,16,Lens,Wide,Lens Film,cocok untuk buat film,100000,5,Excellent,Available,Wide angle
+71003,16,Camera,Compact,Sony camera,Berwarna pisan kang,100000,1,Good,Available,LED kelap kelip
+71004,16,Lens,Kit,Lensa ciamik,no fek,50000,2,Good,Available,alus lah ieu mah
+71005,16,Lens,Wide,Lens Film,cocok untuk buat film,100000,4,Excellent,Available,Wide angle

@@ -577,7 +577,7 @@ def ajukan_sewa(cam, user):
             print("Invalid choice. Please select a valid reason.")
 
 
-    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ")
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789. ")
 
     while True:
         address = input("Shipping address: ").strip()
@@ -784,6 +784,56 @@ def list_all_cameras(user):
         return
     pilih_dan_baca_produk(df, user)
 
+def input_payment_date_strict():
+    while True:
+        print("\nPayment date input (Year must be 2026)")
+        print("[q] cancel")
+
+        tahun = input("Year  (YYYY): ").strip()
+        if tahun.lower() == "q":
+            print("Cancelled.")
+            return None
+        if not tahun.isdigit() or tahun != "2026":
+            print("Year must be 2026.")
+            continue
+
+        bulan = input("Month (1-12): ").strip()
+        if bulan.lower() == "q":
+            print("Cancelled.")
+            return None
+        if not bulan.isdigit():
+            print("Month must be a number.")
+            continue
+
+        bulan = int(bulan)
+        if bulan < 1 or bulan > 12:
+            print("Month must be between 1 and 12.")
+            continue
+
+        hari = input("Day   : ").strip()
+        if hari.lower() == "q":
+            print("Cancelled.")
+            return None
+        if not hari.isdigit():
+            print("Day must be a number.")
+            continue
+
+        hari = int(hari)
+
+        if bulan in [1, 3, 5, 7, 8, 10, 12]:
+            max_hari = 31
+        elif bulan in [4, 6, 9, 11]:
+            max_hari = 30
+        else:
+            max_hari = 29
+
+        if hari < 1 or hari > max_hari:
+            print(f"Day must be between 1 and {max_hari}.")
+            continue
+
+        return f"2026-{bulan:02d}-{hari:02d}"
+
+
 def bayar_sewa(user):
     df_rental = load_rentals()
     df_bayar = load_pembayaran()
@@ -838,7 +888,9 @@ Status       : {kanan['status']}
 
     methods = methods_map[pilih]
 
-    payment_date = input("Payment date (YYYY-MM-DD): ").strip()
+    payment_date = input_payment_date_strict()
+    if not payment_date:
+        return
 
     START_ID = 61001
 
@@ -1569,13 +1621,27 @@ def proses_proposal(pid):
         print("This proposal has been handled before.")
         return
 
-    print("\nApprove this rental proposal? [y/n]")
-    if confirm_action():
-        df.loc[idx, "status"] = "Waiting for payment"
-        print("Approved. Waiting for user payment.")
-    else:
-        df.loc[idx, "status"] = "Rejected"
-        print("Proposal rejected.")
+    print("\nApprove this rental proposal?")
+    print("     [y] yes   [n] no   [q] cancel")
+
+    while True:
+        choice = input("\n> ").lower().strip()
+
+        if choice == "q":
+            print("Cancelled.")
+            return
+
+        if choice == "y":
+            df.loc[idx, "status"] = "Waiting for payment"
+            print("Approved. Waiting for user payment.")
+            break
+
+        if choice == "n":
+            df.loc[idx, "status"] = "Rejected"
+            print("Proposal rejected.")
+            break
+
+        print("Invalid choice.")
 
     df.to_csv(RENTAL_FILE, index=False)
 
