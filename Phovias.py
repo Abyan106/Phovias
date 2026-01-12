@@ -891,6 +891,23 @@ Status       : {kanan['status']}
     payment_date = input_payment_date_strict()
     if not payment_date:
         return
+    
+    total_tagihan = rental.iloc[0]["total_amount"]
+
+    print(f"\nTotal bill : {total_tagihan}")
+    print("Enter payment amount")
+
+    bayar = input("> ").strip()
+
+    if not bayar.isdigit():
+        print("❌ Payment must be numeric.")
+        return
+
+    bayar = int(bayar)
+
+    if bayar != total_tagihan:
+        print("❌ Payment failed. Amount does not match the bill.")
+        return
 
     START_ID = 61001
 
