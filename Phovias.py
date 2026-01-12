@@ -1596,7 +1596,30 @@ def add_camera(user):
     df = load_cameras()
 
     print(f"\n\n\nADD NEW PRODUCT\n{miniliner}")
-    product_name = input("Product name: ")
+
+    while True:
+        product_name = input("Product name [q to cancel]: ").strip()
+
+        if product_name.lower() == "q":
+            print("Add product cancelled.")
+            return
+
+        if not product_name:
+            print("Product name cannot be empty.")
+            continue
+
+        # cek redundansi (nama sama, vendor sama)
+        duplikat = df[
+            (df["vendor_id"] == user["id"]) &
+            (df["product_name"].str.lower() == product_name.lower())
+        ]
+
+        if not duplikat.empty:
+            print("❌ You already have a product with this name.")
+            print("Please enter a different product name.")
+            continue
+
+        break
 
     # PRODUCT TYPES
     while True:
