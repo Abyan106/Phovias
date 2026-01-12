@@ -62,7 +62,7 @@ def load_vendors():
 def load_rentals():
     if not os.path.exists(RENTAL_FILE):
         df = pd.DataFrame(columns=[
-            "id", "user_id", "vendor_id", "product_id", "start_date", "end_date", "address", "notes", "total_amount", "status"
+            "id", "user_id", "vendor_id", "product_id", "start_date", "end_date", "address", "notes", "total_amount", "status","approval_date"
         ])
         df.to_csv(RENTAL_FILE, index=False)
     return pd.read_csv(RENTAL_FILE)
@@ -822,22 +822,23 @@ def list_all_cameras(user):
         return
     pilih_dan_baca_produk(df, user)
 
-def input_payment_date_strict():
-    while True:
-        print("\nPayment date input (Year must be 2026)")
-        print("[q] cancel")
+def input_payment_date_strict(start_day, approval_day):
+    tahun, sm, sd = map(int, start_day.split("-"))
+    tahun, am, ad = map(int, approval_day.split("-"))
 
-        tahun = input("Year  (YYYY): ").strip()
-        if tahun.lower() == "q":
-            print("Cancelled.")
-            return None
-        if not tahun.isdigit() or tahun != "2026":
-            print("Year must be 2026.")
-            continue
+    start_day_num = tanggal_ke_hari(sm, sd)
+    approval_day_num = tanggal_ke_hari(am, ad)
+    batas_pembayaran = start_day_num - 3
+
+    while True:
+        print("\nPAYMENT DATE INPUT")
+        print("Rules:")
+        print("- Payment must be AFTER approval")
+        print("- Payment must be at least 3 days before rental start")
+        print("[q] Cancel")
 
         bulan = input("Month (1-12): ").strip()
         if bulan.lower() == "q":
-            print("Cancelled.")
             return None
         if not bulan.isdigit():
             print("Month must be a number.")
@@ -848,25 +849,44 @@ def input_payment_date_strict():
             print("Month must be between 1 and 12.")
             continue
 
-        hari = input("Day   : ").strip()
+        if bulan < am:
+            print("Payment month cannot be before approval month.")
+            continue
+        if bulan > sm:
+            print("Payment month cannot be after rental start month.")
+            continue
+
+        hari = input("Day: ").strip()
         if hari.lower() == "q":
-            print("Cancelled.")
             return None
         if not hari.isdigit():
             print("Day must be a number.")
             continue
 
         hari = int(hari)
+        if hari < 1 or hari > 31:
+            print("Invalid day.")
+            continue
 
-        if bulan in [1, 3, 5, 7, 8, 10, 12]:
-            max_hari = 31
-        elif bulan in [4, 6, 9, 11]:
-            max_hari = 30
-        else:
-            max_hari = 29
+        if bulan == am and hari < ad:
+            print("Payment date cannot be before approval date.")
+            continue
 
-        if hari < 1 or hari > max_hari:
-            print(f"Day must be between 1 and {max_hari}.")
+        if bulan == sm and hari > sd - 3:
+            print("Payment must be at least 3 days before rental start.")
+            continue
+
+        payment_day = tanggal_ke_hari(bulan, hari)
+
+        if payment_day == approval_day_num:
+            return f"2026-{bulan:02d}-{hari:02d}"
+
+        if payment_day < approval_day_num:
+            print("Payment date cannot be before approval date.")
+            continue
+
+        if payment_day > batas_pembayaran:
+            print("Payment must be at least 3 days before rental start.")
             continue
 
         return f"2026-{bulan:02d}-{hari:02d}"
@@ -926,26 +946,38 @@ Status       : {kanan['status']}
 
     methods = methods_map[pilih]
 
-    payment_date = input_payment_date_strict()
+    start_day = rental.iloc[0]["start_date"]
+    approval_day = rental.iloc[0]["approval_date"]
+
+    payment_date = input_payment_date_strict(start_day, approval_day)
     if not payment_date:
         return
+
     
     total_tagihan = rental.iloc[0]["total_amount"]
 
-    print(f"\nTotal bill : {total_tagihan}")
-    print("Enter payment amount")
+    while True:
+        print(f"\nTotal bill : {total_tagihan}")
+        print("Enter payment amount")
+        print("[q] Cancel")
 
-    bayar = input("> ").strip()
+        bayar = input("> ").strip()
 
-    if not bayar.isdigit():
-        print("❌ Payment must be numeric.")
-        return
+        if bayar.lower() == "q":
+            print("Payment cancelled.")
+            return
 
-    bayar = int(bayar)
+        if not bayar.isdigit():
+            print("❌ Payment must be numeric.")
+            continue
 
-    if bayar != total_tagihan:
-        print("❌ Payment failed. Amount does not match the bill.")
-        return
+        bayar = int(bayar)
+
+        if bayar != total_tagihan:
+            print("❌ Amount does not match the bill.")
+            continue
+        break
+
 
     START_ID = 61001
 
@@ -1758,13 +1790,21 @@ def proses_proposal(pid):
             return
 
         if choice == "y":
+            print("\nApproval date (system input)")
+
+            bulan = int(input("Month (1-12): "))
+            hari = int(input("Day   : "))
+
+            approval_date_str = f"2026-{bulan:02d}-{hari:02d}"
+
             df.loc[idx, "status"] = "Waiting for payment"
+            df.loc[idx, "approval_date"] = approval_date_str
+
             print("Approved. Waiting for user payment.")
             break
 
         if choice == "n":
             df.loc[idx, "status"] = "Rejected"
-            print("Proposal rejected.")
             break
 
         print("Invalid choice.")
@@ -1969,7 +2009,7 @@ def edit_product(user):
 
     print("\nEDIT PRODUCT")
     print(miniliner)
-    for _, produk in my_products.iterrows():
+    for kiri, produk in my_products.iterrows():
         print(f"- ID {produk['id']} | {produk['product_name']}")
 
     print()
