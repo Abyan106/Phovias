@@ -9,6 +9,7 @@
 # ==========================================
 
 import pandas as pd
+import numpy as np
 import os
 
 #? aset utama hiasan
@@ -156,6 +157,50 @@ def confirm_action():
         else:
             print("Invalid choice.")
             continue
+
+def paginate_select(df, render_func, per_page=5, title="DATA LIST", select_label="Select ID: "):
+    """
+    pagination buat selected
+    """
+    if df.empty:
+        print("No data available.")
+        enter_to_back()
+        return None
+
+    total_data = len(df)
+    total_page = (total_data + per_page - 1) // per_page
+    page = 0
+
+    while True:
+        start = page * per_page
+        end = start + per_page
+        page_data = df.iloc[start:end]
+
+        print("\n" + liner)
+        print(title.center(indentasi))
+        print(f"Page {page + 1} of {total_page}".center(indentasi))
+        print(liner)
+
+        for kiri, row in page_data.iterrows():
+            render_func(row)
+
+        print("\n[n] Next     [p] Prev     [q] Quit")
+        uid_input = input(select_label).strip().lower()
+
+        if uid_input == "n":
+            page = (page + 1) % total_page
+        elif uid_input == "p":
+            page = (page - 1) % total_page
+        elif uid_input == "q":
+            return None
+        elif uid_input.isdigit():
+            uid = int(uid_input)
+            if uid in df["id"].values:
+                return uid
+            else:
+                print("❌ Invalid User ID.")
+        else:
+            print("❌ Invalid input.")
 
 def paginate(df, render_func, per_page=5, title="DATA LIST"):
     if df.empty:
@@ -568,38 +613,38 @@ Status       : {cam['status']}
 
 #! KELAR
 def pilih_dan_baca_produk(df, user):
-    users_df = load_users()
+    vendors_df = load_vendors()
 
     if df.empty:
         enter_to_back("📭 There are no products.")
         return
+
+    def render_camera(row):
+        vendor_id = int(row["vendor_id"])
+        vendor = vendors_df[vendors_df["id"].apply(int) == vendor_id]
+
+        if not vendor.empty:
+            shop_name = vendor.iloc[0]["shop_name"]
+        else:
+            shop_name = "Vendor"
+
+        print(f"- ID {row['id']} | {row['product_name']} ({row['category']}) - {shop_name}")
+
     while True:
-        print(f"\n\n\nSEARCH RESULTS\n{liner}")
-        for kiri, kanan in df.iterrows():
-            vendor = users_df[users_df["id"] == kanan["vendor_id"]]
+        cam_id = paginate_select(
+            df,
+            render_func=render_camera,
+            per_page=5,
+            title="SEARCH RESULTS",
+            select_label="Enter Product ID to view details or [q] to quit: "
+        )
 
-            if not vendor.empty:
-                shop_name = vendor.iloc[0].get("shop_name", "Vendor")
-            else:
-                shop_name = "Vendor"
-                
-            print(f"- ID {kanan['id']} | "
-                f"{kanan['product_name']} ({kanan['category']}) "
-                f"-  {shop_name}"
-            )
+        if cam_id is None:
+            return
 
-        opsi()
-        while True:
-            hasil = input_atau_back(
-                df, message=None, id_label="Product ID"
-            )
-            if hasil is None:
-                return
-            if hasil == "retry":
-                continue
-            cam = df[df["id"] == hasil]
+        cam = df[df["id"] == cam_id]
+        if not cam.empty:
             view_camera_detail(cam.iloc[0], user)
-            break
     
 def ajukan_sewa(cam, user):
     print("\n\n\nRENTAL APPLICATION")
@@ -723,8 +768,9 @@ def search_camera(user):
 
     results = []
 
-    for _, row in df.iterrows():                    
-        if key in row["product_name"].lower():
+    for index, row in df.iterrows():                    
+        product_name = str(row["product_name"])
+        if key in product_name.lower():
             results.append(row)
 
     if not results:
@@ -801,7 +847,7 @@ def register_vendor(user):
         break
 
     # bikin data vendor nya
-    new_id = df_vendors["id"].max() + 1 if not df_vendors.empty else 1
+    new_id = user["id"]  # <-- ganti ID vendor sama dengan ID user
 
     new_vendor = {
         "id": new_id,
@@ -825,7 +871,6 @@ def register_vendor(user):
 
     print("Registration successful. You are now a Lender.\n")
     return user
-
 
 def simpan_proposal_sewa(rental):
     df = load_rentals()
@@ -1440,28 +1485,21 @@ def delete_account():
         return
 
     while True:
-        paginate(
+        uid = paginate_select(
             df,
             render_user_for_delete,
             per_page=5,
-            title="DELETE ACCOUNT"
-        )
-
-        uid = input_atau_back(
-            df, "📭 No users to delete.", id_label="User ID"
+            title="DELETE ACCOUNT",
+            select_label="Enter User ID to delete or [q] to quit: "
         )
 
         if uid is None:
-            return
-        if uid == "retry":
-            continue
+            return  # user quit
 
         if not show_user_detail(uid):
             continue
 
-        print("Want to delete this account?")
-        print("     [y] yes   [n] no")
-
+        print("Want to delete this account? [y/n]")
         if not confirm_action():
             continue
 
