@@ -391,10 +391,11 @@ def user_menu(user):
             print("4. Lender menu")
         else:
             print("4. Register as Lender")
-        print("5. Pay rental")
-        print("6. Confirm receipt of goods")
-        print("7. Return camera")
-        print("8. Log out")
+            print("5. Pay rental")
+            print("6. Confirm receipt of goods")
+            print("7. Return camera")
+            print("8. Edit Profile")
+            print("9. Log out")
 
         choice = input("\n> ")
 
@@ -405,7 +406,6 @@ def user_menu(user):
                 continue
             pilih_dan_baca_produk(hasil, user)
             continue
-            # search_camera(user)
         elif choice == "2":
             list_categories(user)
         elif choice == "3":
@@ -422,10 +422,13 @@ def user_menu(user):
         elif choice == "7":
             kembalikan_kamera(user)
         elif choice == "8":
+            edit_profile_menu(user)
+        elif choice == "9":
             print("Logged out.\n")
             break
         else:
             print("Your choice is invalid.\n")
+
  
 def hari_dalam_bulan(bulan):
     if bulan == 2:
@@ -1156,7 +1159,75 @@ Status        : {kanan['status']}
 
     print("Item returned successfully. Waiting for vendor confirmation.")
     
-    
+
+def edit_profile_menu(user):
+    while True:
+        print("\nEDIT PROFILE")
+        print(miniliner)
+        print("1. Change username")
+        print("2. Change password")
+        print("3. Back")
+
+        choice = input("\n> ").strip()
+
+        if choice == "1":
+            ubah_username(user)
+        elif choice == "2":
+            ubah_password(user)
+        elif choice == "3":
+            break
+        else:
+            print("Invalid choice.")
+                
+def ubah_username(user):
+    df = load_users()
+
+    new_username = input("Enter new username: ").strip()
+
+    if not new_username:
+        print("Username cannot be empty.")
+        return
+
+    if not is_valid_username(new_username):
+        print(
+            "Username can only contain letters, numbers, spaces, and underscore."
+        )
+        return
+
+    if new_username in df["username"].values:
+        print("Username is already taken.")
+        return
+
+    df.loc[df["id"] == user["id"], "username"] = new_username
+    save_users(df)
+
+    user["username"] = new_username
+
+    print("Username successfully updated.")
+    print(f"New username: {new_username}")
+        
+def ubah_password(user):
+    df = load_users()
+
+    old_password = input("Enter current password: ").strip()
+
+    if old_password != user["password"]:
+        print("Current password is incorrect.")
+        return
+
+    new_password = input("Enter new password: ").strip()
+
+    if len(new_password) < 6:
+        print("Password must be at least 6 characters long.")
+        return
+
+    df.loc[df["id"] == user["id"], "password"] = new_password
+    save_users(df)
+
+    user["password"] = new_password
+
+    print("Password successfully updated.")
+
 # =========================
 # ADMIN MENU KELAAAAAAAAAAAARRRRRRRRRR
 # =========================
