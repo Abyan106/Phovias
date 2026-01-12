@@ -1,4 +1,4 @@
-id,user_id,vendor_id,product_id,start_date,end_date,alasan,notes,status,address,total_amount
+id,user_id,vendor_id,product_id,start_date,end_date,alasan,notes,status,address,total_amount,approval_date
 51001,17,16,71001,2026-01-12,2026-01-15,study,"Pake bubble wrap aja, nanti aku bayar lebih pak",Completed,Sukabumi jalan nyomplong gang kartapura no 30,300000
 51002,17,16,71001,2026-01-15,2026-01-16,study,wrap,Rejected,Sukabumi jalan nyomplong,100000
 51003,19,16,71001,2026-01-15,2026-01-17,study,wrap,Waiting for approval,Sukabumi jalan nyomplong,200000
