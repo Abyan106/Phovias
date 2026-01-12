@@ -158,6 +158,40 @@ def confirm_action():
 # USER AUTH FUNCTIONS
 # =========================
 
+def is_valid_username(username):
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+
+    for char in username:
+        if char not in allowed_chars:
+            return False
+    return True
+
+def is_valid_name(name):
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ")
+
+    for char in name:
+        if char not in allowed_chars:
+            return False
+    return True
+
+# buah alamat
+def is_valid_alamat(adress):
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-/ ")
+
+    for char in adress:
+        if char not in allowed_chars:
+            return False
+    return True
+
+# nama toko
+def is_valid_store_name(store_name):
+    allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ")
+
+    for char in store_name:
+        if char not in allowed_chars:
+            return False
+    return True
+
 def register_user():
     df = load_users()
 
@@ -206,10 +240,11 @@ def register_user():
             print("Name cannot be empty.")
             continue
 
-        if not name.replace(" ", "").isalpha():
-            print("Name must contain letters only")
+        if not is_valid_name(name):
+            print(
+                "Name can only contain letters and spaces"
+            )
             continue
-            #ini udah aman pake isalpha bisa spasi ternyata aman by Abyan ya
         break
     
     print("\nUsernames may contain letters, numbers, and underscores only")
@@ -224,9 +259,6 @@ def register_user():
             print("Username cannot be empty.")
             continue
 
-        # if not username.replace(" ", "").isalpha():
-        #     print("❌ name hanya boleh huruf.")
-        #     continue
         if " " in username:
             print("Username cannot contain spaces.\n")
             continue
@@ -239,8 +271,8 @@ def register_user():
             print("Username cannot be longer than 20 characters.\n")
             continue
 
-        if "@" in username or "#" in username or "$" in username or "%" in username or "&" in username or "*" in username or "!" in username or "^" in username or "(" in username or ")" in username or "-" in username or "+" in username or "=" in username or "/" in username or "\\" in username or "|" in username or "{" in username or "}" in username or "[" in username or "]" in username or ":" in username or ";" in username or "'" in username or "<" in username or ">" in username or "," in username:
-            print("Username cannot contain special characters.\n")
+        if not is_valid_username(username):
+            print("Username can only contain letters, numbers, and underscore.")
             continue
         
         if username in df["username"].values:
@@ -651,12 +683,17 @@ def register_vendor(user):
     print(miniliner)
     print("[q] to cancel registration at any time.")
 
+    # nama toko
     while True:
         store_name = input("\nStore name: ").strip()
 
         if store_name.lower() == "q":
             print("Registration cancelled.\n")
             return user
+        
+        if not is_valid_store_name(store_name):
+            print("Store name may only contain letters, numbers, spaces, and underscore.")
+            continue
 
         if not store_name:
             print("Store name cannot be empty.")
@@ -669,19 +706,15 @@ def register_vendor(user):
         if len(store_name) > 20:
             print("Store name cannot exceed 20 characters.")
             continue
-
-        if not store_name.replace(" ", "").isalpha():
-            print("Store name may contain letters and spaces only.")
-            continue
-
         break
-
-    # deskripsi dibuat jadi opsional
+    
+    # deskripsi    
     description = input("\nStore description (optional): ").strip()
     if description.lower() == "q":
         print("Registration cancelled.\n")
         return user
 
+    # alamat
     while True:
         address = input("\nVendor address: ").strip()
 
@@ -693,12 +726,18 @@ def register_vendor(user):
             print("Address cannot be empty.")
             continue
 
-        if not address.replace(" ", "").isalpha():
-            print("Address may contain letters and spaces only.")
+        if len(address) < 10:
+            print("Address must be at least 10 characters long.")
             continue
 
+        if not is_valid_alamat(address):
+            print(
+                "Address may only contain letters, numbers, spaces, and characters (.,- /)."
+            )
+            continue
         break
 
+    # bikin data vendor nya
     new_id = df_vendors["id"].max() + 1 if not df_vendors.empty else 1
 
     new_vendor = {
@@ -715,12 +754,13 @@ def register_vendor(user):
     )
     df_vendors.to_csv(VENDOR_FILE, index=False)
 
+    # UPDATE USER ROLE
     df_users.loc[df_users["id"] == user["id"], "role"] = "vendor"
     df_users.to_csv(FILE_PATH, index=False)
 
     user["role"] = "vendor"
 
-    print("Registration successful. You are now a Lender!\n")
+    print("Registration successful. You are now a Lender.\n")
     return user
 
 
