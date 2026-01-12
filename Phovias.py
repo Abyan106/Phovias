@@ -83,6 +83,9 @@ def load_ratings():
         ])
     return pd.read_csv(RATING_FILE)
 
+def save_users(df):
+    df.to_csv(FILE_PATH, index=False)
+
 def save_cameras(df):
     df.to_csv(PRODUK_FILE, index=False)
     
