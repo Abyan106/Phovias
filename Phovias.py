@@ -394,11 +394,11 @@ def user_menu(user):
             print("4. Lender menu")
         else:
             print("4. Register as Lender")
-            print("5. Pay rental")
-            print("6. Confirm receipt of goods")
-            print("7. Return camera")
-            print("8. Edit Profile")
-            print("9. Log out")
+        print("5. Pay rental")
+        print("6. Confirm receipt of goods")
+        print("7. Return camera")
+        print("8. Edit Profile")
+        print("9. Log out")
 
         choice = input("\n> ")
 
