@@ -631,13 +631,25 @@ def ajukan_sewa(cam, user):
 #! KELAR    
 def search_camera(user):
     df = load_cameras()
+
     print("\nProduct name:")
     key = input("> ").lower()
     if key == "":
         print("Field must be input.")
         return
-    result = df[df["product_name"].str.lower().str.contains(key, na=False)]
-    return result
+
+    results = []
+
+    for _, row in df.iterrows():                    
+        if key in row["product_name"].lower():
+            results.append(row)
+
+    if not results:
+        print("Camera not found.")
+        return
+
+    return pd.DataFrame(results)
+
 
 def register_vendor(user):
     df_users = load_users()
@@ -765,15 +777,40 @@ def list_categories(user):
     print(miniliner)
     pilih_dan_baca_produk(result, user)
 
+
 def list_all_cameras(user):
     df = load_cameras()
 
-    print("ALL PRODUCTS")
+    print("\nALL PRODUCTS")
     print(miniliner)
 
     if df.empty:
-        print(".")
+        print("📭 No products available.")
         return
+
+    print("\nSORT BY:")
+    print("1. Name (A-Z)")
+    print("2. Rental Fee (Lowest)")
+    print("3. Rental Fee (Highest)")
+    print("4. Stock (Highest)")
+    print("5. No Sorting")
+
+    pilih = input("\n> ")
+
+    if pilih == "1":
+        df = df.sort_values(by="product_name")
+    elif pilih == "2":
+        df = df.sort_values(by="rental_fee")
+    elif pilih == "3":
+        df = df.sort_values(by="rental_fee", ascending=False)        
+    elif pilih == "4":
+        df = df.sort_values(by="stock", ascending=False)
+    elif pilih == "5":
+        pass                    
+    else:
+        print("Invalid choice.")
+        return
+
     pilih_dan_baca_produk(df, user)
 
 def input_payment_date_strict():
