@@ -1988,37 +1988,48 @@ Status       : {value['status']}
         break
 
 def lihat_review_vendor(user):
-    if user["role"] != "vendor":
-        print("You don't have permission to view this section.")
-        return
-
-    rating_df = load_ratings()
+    df_rating = load_ratings()
     camera_df = load_cameras()
     user_df = load_users()
 
-    review_vendor = rating_df[rating_df["vendor_id"] == user["id"]]
+    review_vendor = df_rating[df_rating["vendor_id"] == user["id"]]
+
+    print(f"\n\n⭐ REVIEW & RATING SUMMARY\n{miniliner}")
 
     if review_vendor.empty:
-        enter_to_back("📭 No reviews yet.")
+        print("📭 No reviews available.")
         return
+    
+    # dropna()=  ngebuang data kosong
+    ratings = np.array(review_vendor["rating"].dropna(), dtype=int)
 
-    print(f"\n\n\nPRODUCT REVIEWS\n{miniliner}")
+    print(f"""
+Total reviews : {ratings.size}
+Average rating: {np.mean(ratings):.2f}
+Highest rating: {np.max(ratings)}
+Lowest rating : {np.min(ratings)}
+""")
 
-    for kiri, kanan in review_vendor.iterrows():
-        cam = camera_df[camera_df["id"] == kanan["product_id"]]
-        product_name = cam.iloc[0]["product_name"] if not cam.empty else "Product"
+    print(f"\n\nPRODUCT REVIEWS\n{miniliner}")
 
-        reviewer = user_df[user_df["id"] == kanan["user_id"]]
-        if not reviewer.empty:
-            name_user = f"{reviewer.iloc[0]['name']} (@{reviewer.iloc[0]['username']})"
-        else:
-            name_user = "User"
+    for _, row in review_vendor.iterrows():
+
+        cam = camera_df[camera_df["id"] == row["product_id"]]
+        product_name = (
+            cam.iloc[0]["product_name"]
+            if not cam.empty and "product_name" in cam.columns
+            else "Product"
+        )
+
+        reviewer = user_df[user_df["id"] == row["user_id"]]
+        name_user = reviewer.iloc[0]["name"] if not reviewer.empty else "User"
 
         print(f"""Produk   : {product_name}
 From     : {name_user}
-Rating   : {kanan['rating']}
-Review   : {kanan['review'] if kanan['review'] else '-'}
+Rating   : {row['rating']}
+Review   : {row['review'] if row['review'] else '-'}
 """)
+    enter_to_back()
         
 def edit_product(user):
     df = load_cameras()
