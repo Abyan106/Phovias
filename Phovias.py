@@ -394,28 +394,30 @@ def user_menu(user):
             break
         else:
             print("Your choice is invalid.\n")
-    
+ 
+def hari_dalam_bulan(bulan):
+    if bulan == 2:
+        return 28   # 2026 BUKAN tahun kabisat
+    if bulan in [4]:
+        return 30
+    return 31
+
+def tanggal_ke_hari(bulan, hari):
+    total = 0
+
+    for b in range(1, bulan):
+        total += hari_dalam_bulan(b)
+
+    total += hari
+    return total
+
+   
 def input_tanggal(label):
-    print(f"\n{label} [q] to cancel.\n")
+    print(f"\n{label} (2026 only) [q] to cancel.\n")
 
-    # inputan buat tahun
+    # bulan (Jan–Mei)
     while True:
-        tahun = input("Year (2026-2030): ").strip()
-        if tahun.lower() == "q":
-            return None
-        if not tahun.isdigit():
-            print("Year must be a number.\n")
-            continue
-
-        tahun = int(tahun)
-        if tahun < 2026 or tahun > 2030:
-            print("Year must be between 2026 and 2030.\n")
-            continue
-        break
-
-    # inputan buat bulan
-    while True:
-        bulan = input("Month (1-12): ").strip()
+        bulan = input("Month (1 = Jan ... 5 = May): ").strip()
         if bulan.lower() == "q":
             return None
         if not bulan.isdigit():
@@ -423,14 +425,15 @@ def input_tanggal(label):
             continue
 
         bulan = int(bulan)
-        if bulan < 1 or bulan > 12:
-            print("Month is invalid.")
+        if bulan < 1 or bulan > 5:
+            print("Rental is only allowed from January to May.")
             continue
         break
 
-    # inputan buat hari
+    # hari (sesuai bulan)
+    max_hari = hari_dalam_bulan(bulan)
     while True:
-        hari = input("Day: ").strip()
+        hari = input(f"Day (1-{max_hari}): ").strip()
         if hari.lower() == "q":
             return None
         if not hari.isdigit():
@@ -438,25 +441,12 @@ def input_tanggal(label):
             continue
 
         hari = int(hari)
-
-        max_hari = 31
-        if bulan in [4, 6, 9, 11]:
-            max_hari = 30
-        elif bulan == 2:
-            max_hari = 29 
-        if hari < 1:
-            print("Day is invalid.")
-            continue
-
-        if hari > max_hari:
-            print(
-                f"Month {bulan} only has {max_hari} days."
-                "The date you entered exceeds the calendar limit."
-            )
+        if hari < 1 or hari > max_hari:
+            print(f"Invalid day. This month only has {max_hari} days.")
             continue
         break
 
-    return f"{tahun:04d}-{bulan:02d}-{hari:02d}"
+    return tanggal_ke_hari(bulan, hari)
         
 #! KELAR           
 def view_camera_detail(cam, user):
@@ -531,22 +521,24 @@ def pilih_dan_baca_produk(df, user):
 def ajukan_sewa(cam, user):
     print("\n\n\nRENTAL APPLICATION")
     print(miniliner)
+
     tgl_mulai = input_tanggal("Start Date")
-    if not tgl_mulai:
-        print("Rental request cancelled")
+    if tgl_mulai is None:
+        print("Rental request cancelled.")
         return False
 
     tgl_selesai = input_tanggal("End Date")
-    if not tgl_selesai:
+    if tgl_selesai is None:
         print("Rental request cancelled.")
         return False
-    lama_sewa = input("Rental duration (days): ")
 
-    if not lama_sewa.isdigit():
-        print("Rental duration must be a number.")
+    if tgl_selesai <= tgl_mulai:
+        print("End date must be after start date.")
         return False
 
-    lama_sewa = int(lama_sewa)
+    lama_sewa = tgl_selesai - tgl_mulai
+    print(f"Rental duration: {lama_sewa} days")
+
 
     while True:
         print("\nReason for rental:")
