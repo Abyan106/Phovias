@@ -1458,7 +1458,8 @@ def vendor_menu(user):
         print("5. Send product (proposal approved)")
         print("6. Confirm product return")
         print("7. View all product reviews")
-        print("8. Log out")
+        print("8. Edit product")
+        print("9. Log out")
 
         choice = input("\n> ")
 
@@ -1477,6 +1478,8 @@ def vendor_menu(user):
         elif choice == "7":
             lihat_review_vendor(user)
         elif choice == "8":
+            edit_product(user)
+        elif choice == "9":
             print("Exited vendor menu.\n")
             break
         else:
@@ -1879,6 +1882,114 @@ From     : {name_user}
 Rating   : {kanan['rating']}
 Review   : {kanan['review'] if kanan['review'] else '-'}
 """)
+        
+def edit_product(user):
+    df = load_cameras()
+    my_products = df[df["vendor_id"] == user["id"]]
+
+    if my_products.empty:
+        print("No products to edit.")
+        enterback1()
+        input()
+        return
+
+    print("\nEDIT PRODUCT")
+    print(miniliner)
+    for _, produk in my_products.iterrows():
+        print(f"- ID {produk['id']} | {produk['product_name']}")
+
+    print()
+    opsi()
+    pid = input("> ").strip()
+
+    if pid == "":
+        return
+
+    if not pid.isdigit():
+        print("Invalid ID.")
+        enterback1()
+        input()
+        return
+
+    pid = int(pid)
+    idx = df[(df["id"] == pid) & (df["vendor_id"] == user["id"])].index
+
+    if idx.empty:
+        print("Product not found or not owned by you.")
+        enterback1()
+        input()
+        return
+
+    # ===== EDIT MODE =====
+    while True:
+        print("""
+EDIT MENU
+1. Product name
+2. Description
+3. Specification
+4. Rental fee
+5. Stock
+6. Status (Available / Unavailable)
+7. Condition
+[q] Finish editing
+""")
+
+        choice = input("> ").strip().lower()
+
+        if choice == "1":
+            df.loc[idx, "product_name"] = input("New product name: ").strip()
+
+        elif choice == "2":
+            df.loc[idx, "description"] = input("New description: ").strip()
+
+        elif choice == "3":
+            df.loc[idx, "specification"] = input("New specification: ").strip()
+
+        elif choice == "4":
+            fee = input("New rental fee: ").strip()
+            if not fee.isdigit():
+                print("Rental fee must be a number.")
+                continue
+            df.loc[idx, "rental_fee"] = int(fee)
+
+        elif choice == "5":
+            stock = input("New stock: ").strip()
+            if not stock.isdigit():
+                print("Stock must be a number.")
+                continue
+
+            stock = int(stock)
+            df.loc[idx, "stock"] = stock
+            df.loc[idx, "status"] = "Available" if stock > 0 else "Unavailable"
+
+        elif choice == "6":
+            status = input("Status (Available / Unavailable): ").strip().capitalize()
+            if status not in ["Available", "Unavailable"]:
+                print("Invalid status.")
+                continue
+            df.loc[idx, "status"] = status
+
+        elif choice == "7":
+            print("1. Excellent\n2. Good\n3. Fair")
+            condition = input("> ").strip()
+            mapping = {"1": "Excellent", "2": "Good", "3": "Fair"}
+            if condition not in mapping:
+                print("Invalid choice.")
+                continue
+            df.loc[idx, "condition"] = mapping[condition]
+
+        elif choice == "q":
+            df.to_csv(PRODUK_FILE, index=False)
+            print("All changes saved.")
+            break
+
+        else:
+            print("Invalid option.")
+            continue
+
+        # simpan SETIAP edit
+        df.to_csv(PRODUK_FILE, index=False)
+        print("Product updated successfully.")
 
 
 # =========================
