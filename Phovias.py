@@ -157,6 +157,43 @@ def confirm_action():
             print("Invalid choice.")
             continue
 
+def paginate(df, render_func, per_page=5, title="DATA LIST"):
+    if df.empty:
+        print("No data available.")
+        enter_to_back()
+        return
+
+    total_data = len(df)
+    total_page = (total_data + per_page - 1) // per_page
+    page = 0
+
+    while True:
+        start = page * per_page
+        end = start + per_page
+        page_data = df.iloc[start:end]
+
+        print("\n" + liner)
+        print(title.center(indentasi))
+        print(f"Page {page + 1} of {total_page}".center(indentasi))
+        print(liner)
+
+        for key, row in page_data.iterrows():
+            render_func(row)
+
+        print("\n[n] Next     [p] Prev     [q] Quit")
+        cmd = input("> ").lower().strip()
+
+        if cmd == "n":
+            page = (page + 1) % total_page
+        elif cmd == "p":
+            page = (page - 1) % total_page
+        elif cmd == "q":
+            break
+        else:
+            print("Invalid input.")
+
+            
+        
 # =========================
 # USER AUTH FUNCTIONS
 # =========================
@@ -1302,21 +1339,18 @@ def admin_menu():
             return
 
 #! KELAR
+
+def render_user(row):
+    print(f"- ID {row['id']} | {row['name']} ({row['role']})")
+
 def list_all_users():
     df = load_users()
-
-    print(f"\n{liner}")
-    print("USER & VENDOR LIST".center(indentasi))
-    print(liner)
-
-    if df.empty:
-        print("No users yet.")
-        return
-
-    for key, value in df.iterrows():
-        print(f"- ID {value['id']} | {value['name']} ({value['role']})")
-    
-    enter_to_back()
+    paginate(
+        df,
+        render_func=render_user,
+        per_page=5,
+        title="USER & VENDOR LIST"
+    )
 
 #! KELAR
 # DELETION PURPOSES
@@ -1347,40 +1381,49 @@ ID Card  : {user.iloc[0]['ktp']}
 """)
     return True
 
+def render_user_for_delete(row):
+    print(f"[{row['id']}] {row['name']} | {row['email']}")
+
 def delete_account():
     df = load_users()
-    
+
+    if df.empty:
+        print("📭 No users to delete.")
+        enter_to_back()
+        return
+
     while True:
-        print(f"\n\n\nDELETE ACCOUNT\n{miniliner}")
-        show_users_simple()
-        opsi()
+        paginate(
+            df,
+            render_user_for_delete,
+            per_page=5,
+            title="DELETE ACCOUNT"
+        )
 
-        while True:
-            hasil = input_atau_back(
-                df, "📭 No users to delete.", id_label="User ID"
-            )
-            if hasil is None:
-                return
-            if hasil == "retry":
-                continue
-            
-            uid = hasil
-    
-            if not show_user_detail(uid):
-                continue
+        uid = input_atau_back(
+            df, "📭 No users to delete.", id_label="User ID"
+        )
 
-
-            print("Want to delete this account?")
-            print("     [y] yes   [n] no")
-
-            if not confirm_action():
-                continue
-
-            df = df[df["id"] != uid]
-            df.to_csv(FILE_PATH, index=False)
-
-            print(f"Account deleted.")
+        if uid is None:
             return
+        if uid == "retry":
+            continue
+
+        if not show_user_detail(uid):
+            continue
+
+        print("Want to delete this account?")
+        print("     [y] yes   [n] no")
+
+        if not confirm_action():
+            continue
+
+        df = df[df["id"] != uid]
+        df.to_csv(FILE_PATH, index=False)
+
+        print("Account deleted.")
+        return
+
 
 
 #! KELAR
