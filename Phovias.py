@@ -286,7 +286,7 @@ def register_user():
 
     while True:
         id_card = input("\nID Card: ").strip()
-
+        
         if id_card.lower() == "q":
             print("Cancelled.\n")
             return
@@ -303,11 +303,19 @@ def register_user():
             print("ID Card must be between 12 and 18 digits.\n")
             continue
         
-        if id_card in df["ktp"].values:
+        ktp_sama = False
+
+        for value in df["ktp"].values:
+            if id_card == str(value):
+                ktp_sama = True
+                break
+
+        if ktp_sama:
             print("An account with this ID Card already exists.\n")
             continue
 
         break
+
 
     while True:
         password = input("\nPassword: ")
@@ -586,7 +594,7 @@ def ajukan_sewa(cam, user):
         print("4. Content / Social Media")
         print("5. Other")
         print("\n[q] Cancel.")
-        pilih = input("\n>: ").lower()
+        pilih = input("\n> ").lower()
 
         if pilih == "q":
             print("Cancelled.")
@@ -797,9 +805,12 @@ def list_categories(user):
     for i, cat in enumerate(categories, 1):
         print(f"{i}. {cat}")
 
-    print("[ID] to view products.")
+    print("\n[ID] to view products.")
+    print("[Enter] back")
     pilih = input("\n> ")
 
+    if pilih == "":
+        return
     if not pilih.isdigit() or not (1 <= int(pilih) <= len(categories)):
         print("Your choice is invalid.")
         return
@@ -813,13 +824,6 @@ def list_categories(user):
 
 def list_all_cameras(user):
     df = load_cameras()
-
-    print("ALL PRODUCTS")
-    print(miniliner)
-
-    if df.empty:
-        print(".")
-        return
     pilih_dan_baca_produk(df, user)
 
 def input_payment_date_strict():
@@ -1436,7 +1440,7 @@ def view_rental_history():
             break
         
         show_rental_detail(rchoice)
-        enter_to_back
+        enter_to_back()
 
 #! KELAR
 # PAYMENT PURPOSES
@@ -1564,8 +1568,13 @@ def add_camera(user):
     df = load_cameras()
 
     print(f"\n\n\nADD NEW PRODUCT\n{miniliner}")
-    product_name = input("Product name: ")
-
+    print("[q] cancel at any time")
+    
+    product_name = input("\nProduct name: ")
+    if product_name.lower() == "q":
+        print("Cancelled.\n")
+        return
+    
     # PRODUCT TYPES
     while True:
         print("\nProduct type:")
@@ -1573,6 +1582,10 @@ def add_camera(user):
         print("2. Lens")
         pilih = input("\n> ")
 
+        if pilih.lower() == "q":
+            print("Cancelled.\n")
+            return
+        
         if pilih == "1":
             product_types = "Camera"
             category_list = ["Mirrorless", "DSLR", "Compact"]
@@ -1592,6 +1605,10 @@ def add_camera(user):
 
         pilih_kat = input("\n> ")
 
+        if pilih_kat.lower() == "q":
+            print("Cancelled.\n")
+            return
+        
         if pilih_kat.isdigit() and 1 <= int(pilih_kat) <= len(category_list):
             category = category_list[int(pilih_kat) - 1]
             break
@@ -1601,18 +1618,30 @@ def add_camera(user):
     # SPECIFICATION
     print("\nSpecification: ")
     specc = input("> ")
+    if specc.lower() == "q":
+        print("Cancelled.\n")
+        return
     
     # DESCRIPTION
     print("\nDescription: ")
     description = input("> ")
+    if description.lower() == "q":
+            print("Cancelled.\n")
+            return
     
     # HARGA SEWA
     print("\nRental fee (per day): ")
     rental_fee = input("> ")
+    if rental_fee.lower() == "q":
+            print("Cancelled.\n")
+            return
     
     # STOCK
     print("\nStock: ")
     stock = input("> ")
+    if stock.lower() == "q":
+            print("Cancelled.\n")
+            return
     
     # CONDITION
     while True:
@@ -1622,6 +1651,9 @@ def add_camera(user):
         print("3. Fair")
         pilih_condition = input("\n> ")
 
+        if pilih_condition.lower() == "q":
+            print("Cancelled.\n")
+            return
         if pilih_condition == "1":
             condition = "Excellent"
             break
@@ -1771,36 +1803,75 @@ def proses_proposal(pid):
 
     df.to_csv(RENTAL_FILE, index=False)
 
+def lihat_proposal_sewa_simpel(proposals):
+    print("\nPROPOSAL LIST")
+    print(liner)
+
+    for key, value in proposals.iterrows():
+        print(f"- Proposal ID {value['id']} | Product ID {value['product_id']} ({value['status']})"
+        )
+
+def lihat_proposal_detail(pid):
+    df = load_rentals()
+    proposal = df[df["id"] == pid]
+    
+
+    if proposal.empty:
+        enter_to_back("Proposal not found.")
+        return False
+
+    p = proposal.iloc[0]
+
+    print(f"\n\n\nPROPOSAL DETAIL\n{miniliner}")
+    print(f"""Proposal ID : {p['id']}
+Product ID  : {p['product_id']}
+User ID     : {p['user_id']}
+Date        : {p['start_date']} ─ {p['end_date']}
+Notes       : {p['notes']}
+Status      : {p['status']}
+""")
+    
+    return True
+
+
 def lihat_proposal_sewa(user):
     df = load_rentals()
-    proposals = df[df["vendor_id"] == user["id"]]
+
+    # 🔥 FILTER: cuma proposal milik vendor + pending confirmation
+    proposals = df[
+        (df["vendor_id"] == user["id"]) &
+        (df["status"] == "Pending confirmation")
+    ]
 
     if proposals.empty:
-        enter_to_back("📭 No proposal.")
+        enter_to_back("📭 No pending confirmation proposals.")
         return
 
-    for kiri, kanan in proposals.iterrows():
-        print(f"""Proposal ID  : {kanan['id']}
-Product ID   : {kanan['product_id']}
-User ID      : {kanan['user_id']}
-Date         : {kanan['start_date']} ─ {kanan['end_date']}
-Notes        : {kanan['notes']}
-Status       : {kanan['status']}
-""")
-
     while True:
+        lihat_proposal_sewa_simpel(proposals)
         opsi()
-        pid = input("\n> ").strip()
 
-        if pid == "":
+        hasil = input_atau_back(
+            proposals, message=None, id_label="Proposal ID"
+        )
+
+        if hasil is None:
             return
 
-        if not pid.isdigit():
-            print("Invalid proposal ID.")
+        if hasil == "retry":
             continue
 
-        proses_proposal(int(pid))
-        break
+        pid = hasil
+
+        if not lihat_proposal_detail(pid):
+            continue
+
+        print("\nProcess this proposal?")
+        print("    [y] yes   [n] no")
+
+        if confirm_action():
+            proses_proposal(pid)
+        return
     
 def update_stock_kamera(product_id, jumlah):
     df_cam = load_cameras()
