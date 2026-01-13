@@ -1641,7 +1641,6 @@ def view_rental_history():
             break
         
         show_rental_detail(rchoice)
-        enter_to_back()
 
 #! KELAR
 # PAYMENT PURPOSES
@@ -1771,11 +1770,6 @@ def add_camera(user):
     print(f"\n\n\nADD NEW PRODUCT\n{miniliner}")
     print("[q] cancel at any time")
     
-    product_name = input("\nProduct name: ")
-    if product_name.lower() == "q":
-        print("Cancelled.\n")
-        return
-
     while True:
         product_name = input("Product name [q to cancel]: ").strip()
 
@@ -1994,51 +1988,98 @@ def delete_camera(user):
     
 def proses_proposal(pid):
     df = load_rentals()
-    idx = df[df["id"] == pid].index
+    idx_list = df[df["id"] == pid].index
 
-    if idx.empty:
+    if idx_list.empty:
         enter_to_back("📭 Proposal not found.")
         return
 
-    if df.loc[idx[0], "status"] != "Waiting for approval":
+    idx = idx_list[0]
+
+    if df.loc[idx, "status"] != "Waiting for approval":
         print("This proposal has been handled before.")
         return
 
-    # print("\nApprove this rental proposal?")
-    # print("     [y] yes   [n] no   [q] cancel")
+    proposal = df.loc[idx]
+
+    start_date = proposal["start_date"]  
+    _, sm, sd = start_date.split("-")
+    sm, sd = int(sm), int(sd)
+
+    start_day_int = tanggal_ke_hari(sm, sd)
+    batas_approval = start_day_int - 7  
+
+    print("\nApprove this rental proposal?")
+    print("     [y] yes   [n] no   [q] cancel")
+    print(f"Rental start date : {start_date}")
+    print("Approval must be at least 7 days BEFORE rental start")
 
     while True:
-        choice = input("\n> ").lower().strip()
+        choice = input("\n> ").strip().lower()
 
         if choice == "q":
             print("Cancelled.")
             return
 
-        if choice == "y":
-            print("\nApproval date (system input)")
+        if choice == "n":
+            df.loc[idx, "status"] = "Rejected"
+            df.to_csv(RENTAL_FILE, index=False)
+            print("❌ Proposal rejected.")
+            return
 
-            bulan = int(input("Month (1-12): "))
-            if bulan == "q":
-                print("Cancelled.\n")
-                return
-            
-            hari = int(input("Day   : "))
+        if choice == "y":
+            print("\nAPPROVAL DATE INPUT")
+            print("[q] Cancel")
+
+            while True:
+                bulan = input("Month (1-5): ").strip()
+                if bulan.lower() == "q":
+                    print("Cancelled.")
+                    return
+                if not bulan.isdigit():
+                    print("Month must be a number.")
+                    continue
+
+                bulan = int(bulan)
+                if not 1 <= bulan <= 5:
+                    print("Month must be between 1 and 5.")
+                    continue
+                break
+
+            max_hari = hari_dalam_bulan(bulan)
+            while True:
+                hari = input(f"Day (1-{max_hari}): ").strip()
+                if hari.lower() == "q":
+                    print("Cancelled.")
+                    return
+                if not hari.isdigit():
+                    print("Day must be a number.")
+                    continue
+
+                hari = int(hari)
+                if not 1 <= hari <= max_hari:
+                    print(f"Invalid day. This month has {max_hari} days.")
+                    continue
+                break
+
+            approval_day_int = tanggal_ke_hari(bulan, hari)
+
+            if approval_day_int > batas_approval:
+                print("❌ Approval date is too late.")
+                print("Approval must be at least 7 days BEFORE rental start.")
+                continue
 
             approval_date_str = f"2026-{bulan:02d}-{hari:02d}"
 
             df.loc[idx, "status"] = "Waiting for payment"
             df.loc[idx, "approval_date"] = approval_date_str
+            df.to_csv(RENTAL_FILE, index=False)
 
-            print("Approved. Waiting for user payment.")
-            break
-
-        if choice == "n":
-            df.loc[idx, "status"] = "Rejected"
-            break
+            print("✅ Proposal approved.")
+            print("Waiting for user payment.")
+            return
 
         print("Invalid choice.")
-
-    df.to_csv(RENTAL_FILE, index=False)
 
 def lihat_proposal_sewa_simpel(proposals):
     print("\nPROPOSAL LIST")
@@ -2101,9 +2142,6 @@ def lihat_proposal_sewa(user):
 
         if not lihat_proposal_detail(pid):
             continue
-
-        print("\nProcess this proposal?")
-        print("    [y] yes   [n] no")
 
         proses_proposal(pid)
         return
@@ -2356,7 +2394,6 @@ EDIT MENU
                     continue
 
                 df.loc[idx, "product_name"] = nama_produk_baru
-                print("Product name updated.")
                 break
             
         elif choice == "2":

@@ -1,3 +1,4 @@
 id,rental_id,total_payment,methods,status,payment_date
 61007,51001,500000.0,transfer,success,2026-02-10
 61008,51003,200000.0,transfer,success,2026-01-07
+61009,51004,400000.0,e-wallet,success,2026-01-10
