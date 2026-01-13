@@ -2047,7 +2047,7 @@ def lihat_proposal_sewa(user):
     ]
 
     if proposals.empty:
-        enter_to_back("📭 No pending confirmation proposals.")
+        enter_to_back("📭 No proposals.")
         return
 
     while True:
