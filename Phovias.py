@@ -8,16 +8,24 @@
 # Dzaky Hafidz Naufal
 # ==========================================
 
+# ==========================================
+# IMPORTAN LIBRARY
+# ==========================================
 import pandas as pd
 import numpy as np
 import os
 
-#? aset utama hiasan
+# ===========================================
+# ASSET BUAT HEADER
+# ===========================================
 liner = "─" * 55
 subliner = "-" * 55
 miniliner = "─" * 30
 indentasi = 55
 
+# ===========================================
+# LOAD DATA CSV
+# ===========================================
 FILE_PATH = "users.csv"
 
 PRODUK_FILE = "produks.csv"
@@ -90,74 +98,11 @@ def save_users(df):
 def save_cameras(df):
     df.to_csv(PRODUK_FILE, index=False)
     
-def enter_to_back(message=None):
-    """
-    * Return:
-    * - None → user tekan Enter (back)
-    """
-    if message:
-        print(message)
-
-    print("\n[Enter] back")
-
-    while True:
-        pilihan = input("\n> ")
-        if pilihan == "":
-            return None
-        else:
-            print("Invalid choice")
-
-def input_atau_back(df, message, id_label="ID"):
-    """
-    * NOTE BUAT ADMIN
-    * Ini fungsi buat message kalo sebuah df (dataframe) kosong
-    *z Pemakaian return:
-    * - None = [Enter] back
-    * - "retry" = kalo inputnya invalid
-    * - int = kalo inputnya valid
-    """
-    if df.empty:
-        print(message)
-        enterback1()
-        input("\n> ")
-        return None
     
-    pilihan = input("\n> ")
+# =================================================
+# PAGES SECTION
+# =================================================
     
-    if pilihan == "":
-        return None
-    
-    if not pilihan.isdigit():
-        print("Invalid.\n")
-        return "retry"
-    
-    pilihan = int(pilihan)
-    
-    if pilihan not in df["id"].values:
-        print(f"{id_label} not found.")
-        return "retry"
-    
-    return pilihan
-
-def confirm_action():
-    """
-    * Return:
-    * - True  -> user pilih 'y'
-    * - False -> user pilih 'n'
-    """
-    while True:
-        choice = input("\n> ").lower().strip()
-
-        if choice == "y":
-            print("Confirmed.")
-            return True
-        elif choice == "n":
-            print("Cancelled.")
-            return False
-        else:
-            print("Invalid choice.")
-            continue
-
 def paginate_select(df, render_func, per_page=5, title="DATA LIST", select_label="Select ID: "):
     """
     pagination buat selected
@@ -236,8 +181,78 @@ def paginate(df, render_func, per_page=5, title="DATA LIST"):
             break
         else:
             print("Invalid input.")
+    
+# ==================================================
+# BUTTON-BUTTON AN
+# ==================================================
+    
+def enter_to_back(message=None):
+    """
+    * Return:
+    * - None → user tekan Enter (back)
+    """
+    if message:
+        print(message)
 
-            
+    print("\n[Enter] back")
+
+    while True:
+        pilihan = input("\n> ")
+        if pilihan == "":
+            return None
+        else:
+            print("Invalid choice")
+
+def input_atau_back(df, message, id_label="ID"):
+    """
+    * NOTE BUAT ADMIN
+    * Ini fungsi buat message kalo sebuah df (dataframe) kosong
+    *z Pemakaian return:
+    * - None = [Enter] back
+    * - "retry" = kalo inputnya invalid
+    * - int = kalo inputnya valid
+    """
+    if df.empty:
+        print(message)
+        enterback1()
+        input("\n> ")
+        return None
+    
+    pilihan = input("\n> ")
+    
+    if pilihan == "":
+        return None
+    
+    if not pilihan.isdigit():
+        print("Invalid.\n")
+        return "retry"
+    
+    pilihan = int(pilihan)
+    
+    if pilihan not in df["id"].values:
+        print(f"{id_label} not found.")
+        return "retry"
+    
+    return pilihan
+
+def confirm_action():
+    """
+    * Return:
+    * - True  -> user pilih 'y'
+    * - False -> user pilih 'n'
+    """
+    while True:
+        choice = input("\n> ").lower().strip()
+
+        if choice == "y":
+            print("Confirmed.")
+            return True
+        elif choice == "n":
+            print("Cancelled.")
+            return False
+        else:
+            print("Invalid choice.")
+            continue
         
 # =========================
 # USER AUTH FUNCTIONS
@@ -525,7 +540,7 @@ def user_menu(user):
  
 def hari_dalam_bulan(bulan):
     if bulan == 2:
-        return 28   # 2026 BUKAN tahun kabisat
+        return 28
     if bulan in [4]:
         return 30
     return 31
@@ -543,38 +558,37 @@ def tanggal_ke_hari(bulan, hari):
 def input_tanggal(label):
     print(f"\n{label} (2026 only) [q] to cancel.\n")
 
-    # bulan (Jan–Mei)
     while True:
-        bulan = input("Month (1 = Jan ... 5 = May): ").strip()
+        bulan = input("Month (1-5): ").strip()
         if bulan.lower() == "q":
-            return None
+            return None, None
         if not bulan.isdigit():
             print("Month must be a number.")
             continue
-
         bulan = int(bulan)
-        if bulan < 1 or bulan > 5:
-            print("Rental is only allowed from January to May.")
+        if not 1 <= bulan <= 5:
+            print("Month must be 1-12.")
             continue
         break
 
-    # hari (sesuai bulan)
     max_hari = hari_dalam_bulan(bulan)
     while True:
         hari = input(f"Day (1-{max_hari}): ").strip()
         if hari.lower() == "q":
-            return None
+            return None, None
         if not hari.isdigit():
             print("Day must be a number.")
             continue
-
         hari = int(hari)
-        if hari < 1 or hari > max_hari:
-            print(f"Invalid day. This month only has {max_hari} days.")
+        if not 1 <= hari <= max_hari:
+            print(f"Invalid day. This month has {max_hari} days.")
             continue
         break
 
-    return tanggal_ke_hari(bulan, hari)
+    tanggal_str = f"2026-{bulan:02d}-{hari:02d}"
+    tanggal_int = tanggal_ke_hari(bulan, hari)
+    return tanggal_str, tanggal_int
+
         
 #! KELAR           
 def view_camera_detail(cam, user):
@@ -650,23 +664,22 @@ def ajukan_sewa(cam, user):
     print("\n\n\nRENTAL APPLICATION")
     print(miniliner)
 
-    tgl_mulai = input_tanggal("Start Date")
-    if tgl_mulai is None:
+    tgl_mulai_str, tgl_mulai_int = input_tanggal("Start Date")
+    if tgl_mulai_str is None:
         print("Rental request cancelled.")
         return False
 
-    tgl_selesai = input_tanggal("End Date")
-    if tgl_selesai is None:
+    tgl_selesai_str, tgl_selesai_int = input_tanggal("End Date")
+    if tgl_selesai_str is None:
         print("Rental request cancelled.")
         return False
 
-    if tgl_selesai <= tgl_mulai:
+    if tgl_selesai_int <= tgl_mulai_int:
         print("End date must be after start date.")
         return False
 
-    lama_sewa = tgl_selesai - tgl_mulai
+    lama_sewa = tgl_selesai_int - tgl_mulai_int
     print(f"Rental duration: {lama_sewa} days")
-
 
     while True:
         print("\nReason for rental:")
@@ -742,8 +755,10 @@ def ajukan_sewa(cam, user):
         "user_id": user["id"],
         "product_id": cam["id"],
         "vendor_id": cam["vendor_id"],
-        "start_date": tgl_mulai,
-        "end_date": tgl_selesai,
+        "start_date": tgl_mulai_str,
+        "end_date": tgl_selesai_str,
+        "start_day_int": tgl_mulai_int,
+        "end_day_int": tgl_selesai_int,
         "address": address,
         "alasan": alasan,
         "notes": notes,
@@ -2028,7 +2043,7 @@ def lihat_proposal_sewa(user):
     # 🔥 FILTER: cuma proposal milik vendor + pending confirmation
     proposals = df[
         (df["vendor_id"] == user["id"]) &
-        (df["status"] == "Pending confirmation")
+        (df["status"] == "Waiting for approval")
     ]
 
     if proposals.empty:
