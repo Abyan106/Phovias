@@ -989,8 +989,8 @@ def input_payment_date_strict(start_day, approval_day):
             continue
 
         bulan = int(bulan)
-        if bulan < 1 or bulan > 12:
-            print("Month must be between 1 and 12.")
+        if bulan < 1 or bulan > 5:
+            print("Month must be between 1 and 5.")
             continue
 
         if bulan < am:
@@ -1201,7 +1201,7 @@ Status        : {kanan['status']}
     if yakin == "y":
         df.loc[idx, "status"] = "Received by user"
         df.to_csv(RENTAL_FILE, index=False)
-        print("Confirmed.")
+        print("Confirmed. Rental has officially started.")
         return
     
     if yakin == "n":
@@ -1336,7 +1336,7 @@ Status        : {kanan['status']}
         rating_df = pd.concat([rating_df, pd.DataFrame([rating_baru])], ignore_index=True)
         rating_df.to_csv(RATING_FILE, index=False)
 
-    print("Item returned successfully. Waiting for vendor confirmation.")
+    # print("Item returned successfully. Waiting for vendor confirmation.")
     
 
 def edit_profile_menu(user):
@@ -1361,22 +1361,43 @@ def edit_profile_menu(user):
 def ubah_username(user):
     df = load_users()
 
-    new_username = input("Enter new username: ").strip()
+    print("\n[q] to cancel at anytime")
+    while True:
+        new_username = input("Enter new username: ").strip()
 
-    if not new_username:
-        print("Username cannot be empty.")
-        return
+        if new_username.lower() == "q":
+                print("Cancelled.\n")
+                return
+            
+        if not new_username:
+            print("Username cannot be empty.")
+            continue
 
-    if not is_valid_username(new_username):
-        print(
-            "Username can only contain letters, numbers, spaces, and underscore."
-        )
-        return
+        if " " in new_username:
+            print("Username cannot contain spaces.\n")
+            continue
+        
+        if len(new_username) < 4:
+            print("Username must be at least 4 characters long.\n")
+            continue
+        
+        if len(new_username) > 20:
+            print("Username cannot be longer than 20 characters.\n")
+            continue
 
-    if new_username in df["username"].values:
-        print("Username is already taken.")
-        return
+        if not is_valid_username(new_username):
+            print("Username can only contain letters, numbers, and underscore.")
+            continue
+        
+        if new_username in df["username"].values:
+            print("Username already taken. Please choose another one.\n")
+            continue
 
+        if new_username in df["username"].values:
+            print("Username is already taken.")
+            return
+        break
+    
     df.loc[df["id"] == user["id"], "username"] = new_username
     save_users(df)
 
@@ -1388,14 +1409,23 @@ def ubah_username(user):
 def ubah_password(user):
     df = load_users()
 
+    print("[q] to cancel at anytime.")
     old_password = input("Enter current password: ").strip()
 
+    if old_password == "q":
+        print("Cancelled.\n")
+        return
+    
     if old_password != user["password"]:
         print("Current password is incorrect.")
         return
 
     new_password = input("Enter new password: ").strip()
 
+    if new_password == "q":
+        print("Cancelled.\n")
+        return
+    
     if len(new_password) < 6:
         print("Password must be at least 6 characters long.")
         return
@@ -1974,8 +2004,8 @@ def proses_proposal(pid):
         print("This proposal has been handled before.")
         return
 
-    print("\nApprove this rental proposal?")
-    print("     [y] yes   [n] no   [q] cancel")
+    # print("\nApprove this rental proposal?")
+    # print("     [y] yes   [n] no   [q] cancel")
 
     while True:
         choice = input("\n> ").lower().strip()
@@ -1988,6 +2018,10 @@ def proses_proposal(pid):
             print("\nApproval date (system input)")
 
             bulan = int(input("Month (1-12): "))
+            if bulan == "q":
+                print("Cancelled.\n")
+                return
+            
             hari = int(input("Day   : "))
 
             approval_date_str = f"2026-{bulan:02d}-{hari:02d}"
@@ -2040,7 +2074,6 @@ Status      : {p['status']}
 def lihat_proposal_sewa(user):
     df = load_rentals()
 
-    # 🔥 FILTER: cuma proposal milik vendor + pending confirmation
     proposals = df[
         (df["vendor_id"] == user["id"]) &
         (df["status"] == "Waiting for approval")
@@ -2072,8 +2105,7 @@ def lihat_proposal_sewa(user):
         print("\nProcess this proposal?")
         print("    [y] yes   [n] no")
 
-        if confirm_action():
-            proses_proposal(pid)
+        proses_proposal(pid)
         return
     
 def update_stock_kamera(product_id, jumlah):
@@ -2244,6 +2276,7 @@ Review   : {row['review'] if row['review'] else '-'}
         
 def edit_product(user):
     df = load_cameras()
+    
     my_products = df[df["vendor_id"] == user["id"]]
 
     if my_products.empty:
@@ -2271,13 +2304,15 @@ def edit_product(user):
         return
 
     pid = int(pid)
-    idx = df[(df["id"] == pid) & (df["vendor_id"] == user["id"])].index
-
-    if idx.empty:
+    idx_list = df[(df["id"] == pid) & (df["vendor_id"] == user["id"])].index
+    if idx_list.empty:
         print("Product not found or not owned by you.")
         enterback1()
         input()
         return
+
+    idx = idx_list[0]
+
 
     # ===== EDIT MODE =====
     while True:
@@ -2294,18 +2329,81 @@ EDIT MENU
 """)
 
         choice = input("> ").strip().lower()
+        print("\n[q] to cancel at anytime.")
 
         if choice == "1":
-            df.loc[idx, "product_name"] = input("New product name: ").strip()
+            while True:
+                vendor_id = user["id"]
+                print("\nNew product name: ")
+                nama_produk_baru = input("> ")
+                
+                if nama_produk_baru == "q":
+                    print("Cancelled.")
+                    break
+                
+                if nama_produk_baru == "":
+                    print("Product name cannot be empty.\n")
+                    continue
+                
+                is_duplicate = df[
+                (df["vendor_id"] == vendor_id) &
+                (df["product_name"].str.lower() == nama_produk_baru.lower()) &
+                (df.index != idx)
+        ]
 
+                if not is_duplicate.empty:
+                    print("Product name already exist in your store.")
+                    continue
+
+                df.loc[idx, "product_name"] = nama_produk_baru
+                print("Product name updated.")
+                break
+            
         elif choice == "2":
-            df.loc[idx, "description"] = input("New description: ").strip()
+            while True:
+                desc = input("New description (min 20 chars): ").strip()
+
+                if desc.lower() == "q":
+                    print("Cancelled.")
+                    break
+
+                if desc == "":
+                    print("Description cannot be empty.")
+                    continue
+
+                if len(desc) < 20:
+                    print("Description must be at least 20 characters.")
+                    continue
+
+                df.loc[idx, "description"] = desc
+                print("Description updated.")
+                break
 
         elif choice == "3":
-            df.loc[idx, "specification"] = input("New specification: ").strip()
+            while True:
+                spec = input("New specification (min 20 chars): ").strip()
+
+                if spec.lower() == "q":
+                    print("Cancelled.")
+                    break
+
+                if spec == "":
+                    print("Specification cannot be empty.")
+                    continue
+
+                if len(spec) < 20:
+                    print("Specification must be at least 20 characters.")
+                    continue
+
+                df.loc[idx, "specification"] = spec
+                print("Specification updated.")
+                break
 
         elif choice == "4":
             fee = input("New rental fee: ").strip()
+            if fee == "q":
+                print("Cancelled.")
+                return
             if not fee.isdigit():
                 print("Rental fee must be a number.")
                 continue
@@ -2313,6 +2411,9 @@ EDIT MENU
 
         elif choice == "5":
             stock = input("New stock: ").strip()
+            if stock == "q":
+                print("Cancelled.")
+                return
             if not stock.isdigit():
                 print("Stock must be a number.")
                 continue
@@ -2322,12 +2423,26 @@ EDIT MENU
             df.loc[idx, "status"] = "Available" if stock > 0 else "Unavailable"
 
         elif choice == "6":
-            status = input("Status (Available / Unavailable): ").strip().capitalize()
-            if status not in ["Available", "Unavailable"]:
-                print("Invalid status.")
-                continue
-            df.loc[idx, "status"] = status
-
+            print("\nStatus:\n1. Available\n2. Unavailable")
+                
+            while True:
+                status = input("> ").strip().lower()
+                if status == "q":
+                    print("Cancelled.")
+                    break
+                if status == "1":
+                    df.loc[idx, "status"] = "Available"
+                    break
+                if status == "2":
+                    df.loc[idx, "status"] = "Unavailable"
+                    break
+                if status == "":
+                    print("Cannot be empty.")
+                    continue
+            
+                print("Invalid choice.")
+                    
+        
         elif choice == "7":
             print("1. Excellent\n2. Good\n3. Fair")
             condition = input("> ").strip()

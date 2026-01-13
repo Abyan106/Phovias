@@ -1,2 +1,4 @@
-id,user_id,vendor_id,product_id,start_date,end_date,start_date_int,end_date_int,alasan,notes,status,address,total_amount,approval_date,start_day_int,end_day_int
-51001,21,16,71001,2026-02-15,2026-02-20,,,wedding,testttt,Completed,sukasukasukasuka,500000,2026-02-10,46.0,51.0
+id,user_id,vendor_id,product_id,start_date,end_date,alasan,notes,status,address,total_amount,approval_date,start_day_int,end_day_int
+51001,21,16,71001,2026-02-15,2026-02-20,wedding,testttt,Completed,sukasukasukasuka,500000,2026-02-10,46.0,51.0
+51002,22,16,71001,2026-01-11,2026-01-13,study,,Waiting for payment,"UPI CIbiru, CIbiru, Bandng",200000,2026-01-13,11.0,13.0
+51003,22,16,71001,2026-01-11,2026-01-13,event,cepet pls,Completed,cornelia street - no 7,200000,2026-01-06,11.0,13.0
