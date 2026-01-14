@@ -503,7 +503,8 @@ def user_menu(user):
         print("6. Confirm receipt of goods")
         print("7. Return camera")
         print("8. Edit Profile")
-        print("9. Log out")
+        print("9. Your rental req")
+        print("10. Log out")
 
         choice = input("\n> ")
 
@@ -532,6 +533,8 @@ def user_menu(user):
         elif choice == "8":
             edit_profile_menu(user)
         elif choice == "9":
+            lihat_rental_user(user)
+        elif choice == "10":
             print("Logged out.\n")
             break
         else:
@@ -589,7 +592,147 @@ def input_tanggal(label):
     tanggal_int = tanggal_ke_hari(bulan, hari)
     return tanggal_str, tanggal_int
 
-        
+def lihat_rental_user(user):
+    df_rentals = load_rentals()
+    df_vendors = load_vendors()
+
+    my_rentals = df_rentals[df_rentals["user_id"] == user["id"]]
+
+    if my_rentals.empty:
+        enter_to_back("📭 You have no rental requests.")
+        return
+
+    print(f"\n\n\nYOUR RENTAL REQUESTS\n{miniliner}")
+    for key, series in my_rentals.iterrows():
+        vendor = df_vendors[df_vendors["id"] == series["vendor_id"]]
+        vendor_name = vendor.iloc[0]["shop_name"] if not vendor.empty else "Vendor"
+
+        print(f"""Rental    : {series['id']}
+Product   : {series['product_id']}
+Vendor    : {vendor_name}
+Date      : {series['start_date']} ─ {series['end_date']}
+Status    : {series['status']}
+""")
+
+    opsi()
+    while True:
+        jwb = input_atau_back(
+            df_rentals, message=None, id_label="Rental ID"  
+        )
+        if jwb is None:
+            return
+        if jwb == "retry":
+            continue
+        manage_rental_user(user, jwb)
+        return
+
+
+def manage_rental_user(user, rid):
+    df = load_rentals()
+    rental = df[df["id"] == rid]
+
+    if rental.empty:
+        print("Rental not found.")
+        return
+
+    r = rental.iloc[0]
+
+    if r["user_id"] != user["id"]:
+        print("This rental does not belong to you.")
+        return
+
+    if r["status"] != "Waiting for approval":
+        enter_to_back("This rental no longer can be edited or deleted")
+        return lihat_rental_user(user)
+
+    print(f"\n\n\nMANAGE RENTAL\n{miniliner}")
+    print("1. Edit\n2. Cancel")
+    print("\n[Enter] back")
+
+    choice = input("> ").strip()
+
+    while True:
+        if choice == " ":
+            return
+        if choice == "1":
+            edit_rental_user(df, r)
+            break
+        elif choice == "2":
+            hapus_rental_user(df, rid)
+            break
+        else:
+            print("Invalid choice")
+            continue
+
+def edit_rental_user(df, rental):
+    idx = df[df["id"] == rental["id"]].index[0]
+
+    print(f"\n\n\nEDIT RENTAL\n{miniliner}")
+
+    print("[q] to cancel at anytime")
+    print("\n[c] use current")
+    new_address = input("New address: ").strip()
+    if new_address == "q":
+        return
+    # if new_address == "d":
+    #     df.loc[idx, "address"] = ""
+    if new_address == "c":
+        pass
+    if new_address:
+        df.loc[idx, "address"] = new_address
+
+    print("\n[d] delete current [c] use current")
+    new_notes = input("New notes: ").strip()
+    if new_notes == "q":
+        return
+    if new_notes == "d":
+        df.loc[idx, "notes"] = "Empty"
+    if new_notes == "c":
+        pass
+    if new_notes:
+        df.loc[idx, "notes"] = new_notes
+
+    print("Change rental date?")
+    print("[y] yes    [n] no")
+    if input("> ").lower() == "y":
+
+        tgl_mulai_str, tgl_mulai_int = input_tanggal("New start date")
+        if tgl_mulai_str is None:
+            print("Date change cancelled.")
+            return
+
+        tgl_selesai_str, tgl_selesai_int = input_tanggal("New end date")
+        if tgl_selesai_str == None:
+            print("Date change cancelled.")
+            return
+
+        if tgl_selesai_int <= tgl_mulai_int:
+            print("End date must be AFTER start date.")
+            return
+
+        lama_sewa = tgl_selesai_int - tgl_mulai_int
+        print(f"New rental duration: {lama_sewa} days")
+
+        df.loc[idx, "start_date"] = tgl_mulai_str
+        df.loc[idx, "end_date"] = tgl_selesai_str
+        df.loc[idx, "start_day_int"] = tgl_mulai_int
+        df.loc[idx, "end_day_int"] = tgl_selesai_int
+
+    df.to_csv(RENTAL_FILE, index=False)
+    print("Updated.")
+
+def hapus_rental_user(df, rid):
+    print("Are you sure you want to cancel this rental?")
+    print("           [y] yes       [n] no")
+    if not confirm_action():
+        return
+
+    df = df[df["id"] != rid]
+    df.to_csv(RENTAL_FILE, index=False)
+    print("Cancelled.")
+
+
+
 #! KELAR           
 def view_camera_detail(cam, user):
     print("\n\n\nPRODUCT DETAILS")
