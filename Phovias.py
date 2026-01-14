@@ -1737,7 +1737,8 @@ def vendor_menu(user):
         print("6. Confirm product return")
         print("7. View all product reviews")
         print("8. Edit product")
-        print("9. Log out")
+        print("9. Monthly report")
+        print("10. Log out")
 
         choice = input("\n> ")
 
@@ -1758,6 +1759,8 @@ def vendor_menu(user):
         elif choice == "8":
             edit_product(user)
         elif choice == "9":
+            monthly_report(user)
+        elif choice == "10":
             print("Exited vendor menu.\n")
             break
         else:
@@ -2501,6 +2504,85 @@ EDIT MENU
         # simpan SETIAP edit
         df.to_csv(PRODUK_FILE, index=False)
         print("Product updated successfully.")
+
+
+def monthly_report(user):
+    df_rentals = load_rentals()
+    df_pay = load_pembayaran()
+    df_users = load_users()
+    df_products = load_cameras()
+
+    print("\nMONTHLY REPORT")
+    print(liner)
+
+    bulan = input("Input month (1-12): ").strip()
+    tahun = input("Input year (e.g 2026): ").strip()
+
+    if not bulan.isdigit() or not tahun.isdigit():
+        enter_to_back("❌ Invalid month or year.")
+        return
+
+    bulan = int(bulan)
+    tahun = int(tahun)
+
+    if bulan < 1 or bulan > 12:
+        enter_to_back("❌ Month must be 1-12.")
+        return
+
+    total_income = 0
+    ada_data = False
+
+    df_pay["payment_date"] = pd.to_datetime(df_pay["payment_date"])
+
+    print(f"\nREPORT {bulan:02d}/{tahun}")
+    print(liner)
+
+    for _, pay in df_pay.iterrows():
+
+        if pay["payment_date"].month != bulan or pay["payment_date"].year != tahun:
+            continue
+
+        rental = df_rentals[df_rentals["id"] == pay["rental_id"]]
+        if rental.empty:
+            continue
+
+        rental = rental.iloc[0]
+
+        if rental["vendor_id"] != user["id"]:
+            continue
+
+        ada_data = True
+
+        user_row = df_users[df_users["id"] == rental["user_id"]]
+        username = user_row.iloc[0]["username"] if not user_row.empty else "Unknown"
+
+        product_row = df_products[df_products["id"] == rental["product_id"]]
+        product_name = product_row.iloc[0]["product_name"] if not product_row.empty else "Unknown"
+
+        start = pd.to_datetime(rental["start_date"])
+        end = pd.to_datetime(rental["end_date"])
+        duration = (end - start).days
+
+        income = pay["total_payment"]
+        total_income += income
+
+        print(f"""
+Rental ID   : {rental['id']}
+Product     : {product_name}
+Rented by   : {username}
+Used for    : {duration} days
+Income      : Rp{income:,}
+------------------------------
+""")
+
+    if not ada_data:
+        enter_to_back("📭 No transactions in this month.")
+        return
+
+    print(liner)
+    print(f"TOTAL INCOME : Rp{total_income:,}")
+    enter_to_back()
+
 
 
 # =========================
