@@ -38,6 +38,8 @@ PEMBAYARAN_FILE = "pembayaran.csv"
 
 RATING_FILE = "rating.csv"
 
+VENDOR_RATING_FILE = "vendorrating.csv"
+
 def enterback():
     print("[Enter] back")
     
@@ -105,6 +107,14 @@ def load_ratings():
             "vendor_id", "user_id", "rating","review"
         ])
     return pd.read_csv(RATING_FILE)
+
+def load_vendor_ratings():
+    if not os.path.exists(VENDOR_RATING_FILE):
+        df = pd.DataFrame(columns=[
+            "id", "rental_id", "vendor_id", "user_id", "rating"
+        ])
+        df.to_csv(VENDOR_RATING_FILE, index=False)
+    return pd.read_csv(VENDOR_RATING_FILE)
 
 def save_users(df):
     df.to_csv(FILE_PATH, index=False)
@@ -510,6 +520,7 @@ def login_user():
 
 def user_menu(user):
     while True:
+        rekomendasi_vendor()
         print(f"\n\n\n{liner}")
         print("USER MENU".center(indentasi))
         print(liner)
@@ -523,9 +534,10 @@ def user_menu(user):
         print("5. Pay rental")
         print("6. Confirm receipt of goods")
         print("7. Return camera")
-        print("8. Edit Profile")
-        print("9. Your rental req")
-        print("10. Log out")
+        print("8. Rating Vendor")
+        print("9. Edit Profile")
+        print("10. Your rental req")
+        print("11. Log out")
 
         choice = input("\n> ")
 
@@ -552,10 +564,12 @@ def user_menu(user):
         elif choice == "7":
             kembalikan_kamera(user)
         elif choice == "8":
-            edit_profile_menu(user)
+            rating_vendor_menu(user)
         elif choice == "9":
-            lihat_rental_user(user)
+            edit_profile_menu(user)
         elif choice == "10":
+            lihat_rental_user(user)
+        elif choice == "11":
             print("Logged out.\n")
             break
         else:
@@ -958,6 +972,39 @@ def search_camera(user):
 
     return pd.DataFrame(results)
 
+def rekomendasi_vendor():
+    vendor_rating_df = load_vendor_ratings()
+    vendor_df = load_vendors()
+
+    if vendor_rating_df.empty:
+        print("No vendor ratings yet.")
+        return
+    
+    
+    vendor_rating_df["rating"] = pd.to_numeric(
+        vendor_rating_df["rating"],
+        errors="coerce"
+    )
+
+    top3 = (
+        vendor_rating_df
+        .groupby("vendor_id")["rating"]
+        .mean()
+        .reset_index()
+        .sort_values(by="rating", ascending=False)
+        .head(3)
+    )
+
+    print("\n⭐ TOP 3 VENDOR DENGAN RATING TERTINGGI")
+    print("-" * 40)
+
+    for _, row in top3.iterrows():
+        vendor = vendor_df[vendor_df["id"] == row["vendor_id"]]
+        shop = vendor.iloc[0]["shop_name"] if not vendor.empty else "Unknown Vendor"
+
+        print(f"{shop}")
+        print(f"⭐ Average Rating: {row['rating']:.1f}")
+        print("-" * 40)
 
 def register_vendor(user):
     df_users = load_users()
@@ -1418,6 +1465,99 @@ def rating_produk(user):
             return None
         else:
             print("Your choice is invalid.")
+            
+def rating_vendor_menu(user):
+    df_rentals = load_rentals()
+    df_vendors = load_vendors()
+    vendor_rating_df = load_vendor_ratings()
+
+    eligible = df_rentals[
+        (df_rentals["user_id"] == user["id"]) &
+        (df_rentals["status"].isin([
+            "Pending confirmation",
+            "Returned",
+            "Completed"
+        ]))
+    ]
+
+    if eligible.empty:
+        enter_to_back("📭 No vendors available for rating.")
+        return
+
+    print(f"\nVENDORS YOU CAN RATE\n{miniliner}")
+
+    for _, r in eligible.iterrows():
+        vendor = df_vendors[df_vendors["id"] == r["vendor_id"]]
+        shop = vendor.iloc[0]["shop_name"] if not vendor.empty else "Unknown"
+
+        print(f"""
+        Rental ID : {r['id']}
+        Vendor    : {shop}
+        Product   : {r['product_id']}
+        -------------------------
+        """)
+
+    print("[Rental ID] to rate vendor\n[Enter] back")
+    rid = input("\n> ").strip()
+
+    if rid == "":
+        return
+    if not rid.isdigit():
+        print("Invalid rental ID.")
+        return
+
+    rid = int(rid)
+    rental = eligible[eligible["id"] == rid]
+
+    if rental.empty:
+        print("Rental not found.")
+        return
+
+    vendor_id = rental.iloc[0]["vendor_id"]
+
+    if not vendor_rating_df[
+        (vendor_rating_df["rental_id"] == rid) &
+        (vendor_rating_df["user_id"] == user["id"])
+    ].empty:
+        enter_to_back("You already rated this vendor.")
+        return
+
+    rating = rating_vendor(user)
+
+    if rating is None:
+        return
+
+    vendor_rating_baru = {
+        "id": len(vendor_rating_df) + 1,
+        "rental_id": rid,
+        "vendor_id": vendor_id,
+        "user_id": user["id"],
+        "rating": rating
+    }
+
+    vendor_rating_df = pd.concat(
+        [vendor_rating_df, pd.DataFrame([vendor_rating_baru])],
+        ignore_index=True
+    )
+    vendor_rating_df.to_csv(VENDOR_RATING_FILE, index=False)
+
+    print("✅ Vendor rating submitted.")
+
+def rating_vendor():
+    print(f"\nRATE THE VENDOR\n{miniliner}")
+
+    while True:
+        rating = input("Vendor Rating (1-5): ")
+        if not rating.isdigit():
+            print("Rating must be a number.")
+            continue
+
+        rating = int(rating)
+        if 1 <= rating <= 5:
+            return rating
+
+        print("Rating must be between 1 and 5.")
+
 
 def kembalikan_kamera(user):
     df = load_rentals()
@@ -1428,7 +1568,7 @@ def kembalikan_kamera(user):
     ]
 
     if aktif.empty:
-        enter_to_back("📭 You are not renting any products.")
+        enter_to_back("You are not renting any products.")
         return
 
     print(f"\nACTIVE RENTALS\n{miniliner}")
@@ -1502,6 +1642,27 @@ Status        : {kanan['status']}
         
         rating_df = pd.concat([rating_df, pd.DataFrame([rating_baru])], ignore_index=True)
         rating_df.to_csv(RATING_FILE, index=False)
+
+    hasil_rating_produk = rating_produk(user)
+
+    if hasil_rating_produk:
+        rating_df = load_ratings()
+        rating_baru = {
+            "id": len(rating_df) + 1,
+            "rental_id": rid,
+            "product_id": product_id,
+            "vendor_id": vendor_id,
+            "user_id": user["id"],
+            "rating": hasil_rating_produk["rating"],
+            "review": hasil_rating_produk["review"],
+        }
+        rating_df = pd.concat(
+            [rating_df, pd.DataFrame([rating_baru])],
+            ignore_index=True
+        )
+        rating_df.to_csv(RATING_FILE, index=False)
+
+
 
     # print("Item returned successfully. Waiting for vendor confirmation.")
     
