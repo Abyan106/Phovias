@@ -550,10 +550,11 @@ def user_menu(user):
         print("7. Return camera")
         print("8. Rating Vendor")
         print("9. Edit Profile")
-        print("10. Your rental req")
+        print("10. Your rental requests")
         print("11. Rental history")
         print("12. Payment history")
         print("13. Log out")
+
 
         choice = input("\n> ")
 
@@ -584,11 +585,12 @@ def user_menu(user):
         elif choice == "9":
             edit_profile_menu(user)
         elif choice == "10":
-            
-            histori_rental_user(user)
+            lihat_rental_user(user)
         elif choice == "11":
-            histori_pembayaran_user(user)
+            histori_rental_user(user)
         elif choice == "12":
+            histori_pembayaran_user(user)
+        elif choice == "13":
             print("Logged out.\n")
             break
         else:
@@ -603,9 +605,6 @@ def lihat_rental_user(user):
     if my_rentals.empty:
         enter_to_back("📭 You have no rental requests.")
         return
-    
-    df_rentals = df_rentals[df_rentals["status"] != "Rejected (out of stock)"]
-    df_rentals.to_csv(RENTAL_FILE, index=False)
 
     print(f"\n\n\nYOUR RENTAL REQUESTS\n{miniliner}")
     for key, series in my_rentals.iterrows():
@@ -654,9 +653,9 @@ def manage_rental_user(user, rid):
     print("1. Edit\n2. Cancel")
     print("\n[Enter] back")
 
-    choice = input("> ").strip()
 
     while True:
+        choice = input("> ").strip()
         if choice == "":
             return
         if choice == "1":
@@ -1468,7 +1467,7 @@ def rating_vendor_menu(user):
         enter_to_back("You already rated this vendor.")
         return
 
-    rating = rating_vendor(user)
+    rating = rating_vendor()
 
     if rating is None:
         return
@@ -1518,25 +1517,24 @@ def kembalikan_kamera(user):
         return
 
     print(f"\nACTIVE RENTALS\n{miniliner}")
-    for kiri, kanan in aktif.iterrows():
+    for _, r in aktif.iterrows():
         print(f"""
-Rental ID     : {kanan['id']}
-Product ID    : {kanan['product_id']}
-Vendor ID     : {kanan['vendor_id']}
-Rental date   : {kanan['start_date']} ─ {kanan['end_date']}
-Status        : {kanan['status']}
+Rental ID     : {r['id']}
+Product ID    : {r['product_id']}
+Vendor ID     : {r['vendor_id']}
+Rental date   : {r['start_date']} ─ {r['end_date']}
+Status        : {r['status']}
 -------------------------
 """)
 
     print("\n[ID] to return rental.\n[Enter] cancel.")
-    rid = input("\n> ")
+    rid = input("\n> ").strip()
     if rid == "":
         print("Cancelled.")
         return
-    else:
-        if not rid.isdigit():
-            print("Rental ID is not valid.")
-            return
+    if not rid.isdigit():
+        print("Rental ID is not valid.")
+        return
 
     rid = int(rid)
     idx = df[df["id"] == rid].index
@@ -1544,66 +1542,52 @@ Status        : {kanan['status']}
     if idx.empty:
         print("Rental not found.")
         return
-    if df.loc[idx[0], "user_id"] != user["id"]:
+
+    rental = df.loc[idx[0]]
+
+    if rental["user_id"] != user["id"]:
         print("This rental does not belong to you.")
         return
-    if df.loc[idx[0], "status"] != "Received by user":
+
+    if rental["status"] != "Received by user":
         print("This rental cannot be returned yet.")
         return
 
-    while True:
-        print("Are you sure you want to return the item?")
-        print("         [y] yes       [n] no")
-        yakin = input("\n> ").lower()
+    print("Are you sure you want to return the item?")
+    print("         [y] yes       [n] no")
+    if input("\n> ").lower() != "y":
+        print("Cancelled.")
+        return
 
-        if yakin == "y":
-            break
-        elif yakin == "n":
-            print("Cancelled.")
-            return
-        else:
-            print("Your choice is invalid.")
-
+    # update status
     df.loc[idx, "status"] = "Pending confirmation"
     df.to_csv(RENTAL_FILE, index=False)
-    print("Thank you for returning the item. Kindly fill out the review below.\n")
-    
+
+    print("Thank you for returning the item. Please leave a rating.\n")
+
     hasil_rating = rating_produk(user)
-    
-    if hasil_rating:
-        rating_df = load_ratings()
-        
-        rating_baru = {
+    if not hasil_rating:
+        return
+
+    rating_df = load_ratings()
+
+    rating_baru = {
         "id": len(rating_df) + 1,
         "rental_id": rid,
-        "product_id": df.loc[idx[0], "product_id"],
-        "vendor_id": df.loc[idx[0], "vendor_id"],
+        "product_id": rental["product_id"], 
+        "vendor_id": rental["vendor_id"],     
         "user_id": user["id"],
         "rating": hasil_rating["rating"],
         "review": hasil_rating["review"],
-        }
-        
-        rating_df = pd.concat([rating_df, pd.DataFrame([rating_baru])], ignore_index=True)
-        rating_df.to_csv(RATING_FILE, index=False)
+    }
 
-    hasil_rating_produk = rating_produk(user)
+    rating_df = pd.concat(
+        [rating_df, pd.DataFrame([rating_baru])],
+        ignore_index=True
+    )
+    rating_df.to_csv(RATING_FILE, index=False)
 
-    if hasil_rating_produk:
-        rating_df = load_ratings()
-        rating_baru = {
-            "id": len(rating_df) + 1,
-            "rental_id": rid,
-            "product_id": product_id,
-            "vendor_id": vendor_id,
-            "user_id": user["id"],
-            "rating": hasil_rating_produk["rating"],
-            "review": hasil_rating_produk["review"],
-        }
-        rating_df = pd.concat(
-            [rating_df, pd.DataFrame([rating_baru])],
-            ignore_index=True
-        )
-        rating_df.to_csv(RATING_FILE, index=False)
+    print("✅ Return processed & rating submitted.")
 
 
 def histori_rental_user(user):
