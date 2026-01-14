@@ -842,7 +842,7 @@ def ajukan_sewa(cam, user):
     print("\n\n\nRENTAL APPLICATION")
     print(miniliner)
 
-    today = dt.date.today()
+    today = dt.date.date()
 
     start_date = parse_date("Start date")
     if not start_date:
