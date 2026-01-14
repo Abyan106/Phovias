@@ -5,3 +5,5 @@ id,vendor_id,product_types,category,product_name,description,rental_fee,stock,co
 71004,16,Lens,Kit,Lensa ciamik,no fek,50000,2,Good,Available,alus lah ieu mah
 71005,16,Lens,Wide,Lens Film,cocok untuk buat film,100000,4,Excellent,Available,Wide angle
 71006,16,Camera,Mirrorless,Sony A7 III,Unit rebutan,150000,0,Excellent,Unavailable,Fullframe
+71007,16,Camera,Mirrorless,Junto,nice,100000,7,Good,Available,4k
+71008,28,Camera,DSLR,Fujifilm CLEAR,Nice view,150000,3,Good,Available,4k

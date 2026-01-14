@@ -1,14 +1,14 @@
 id,email,name,username,role,password,ktp,approval_status
 1,abyan@gmail.com,Muhammad Abyan Daryansyah,variant,admin,abyan106,161616161616,approved
 2,atsiila@gmail.com,Atsiila Kaysa,Asyraf,admin,atsiila69,696969696969,approved
-3,i,Irenia,renmoire,admin,iren,676767676767,approved
+3,iren@gmail.com,Irenia,renmoire,admin,iren,676767676767,approved
 4,najah@gmail.com,Najahah,Patin,admin,patin91,5555555555,approved
 5,dzaky@gmail.com,Dzaky Hafidz,Naufal,admin,jaki67,947145678910,approved
 6,beli,beli,beli,user,beli67,1014142861435,approved
 7,bambang@gmail.com,bambang,gnabmab,vendor,123456,55555555145,approved
 10,d,d,d,vendor,123456,456456456456,approved
 11,e,e,e,vendor,123456,789789789789,approved
-16,teddy@gmail.com,Teddy,hH,vendor,bundated,123456789123,approved
+16,a,Teddy,hH,vendor,a,123456789123,approved
 17,ted@gmail.com,TEddy dua,mayted2,user,mayted123,123123123123,approved
 18,mn,mn,mn,user,mn123,321321321321,approved
 19,testingakhir@gmail.com,testing loh ya,testing_loh,user,testing loh ya,141524713124,approved
@@ -19,3 +19,6 @@ id,email,name,username,role,password,ktp,approval_status
 24,photograph@gmail.com,Photo Enthu,PhotoEnthu,user,PhotoEnthu123,876876876876,approved
 25,abyan.daspro@gmail.com,AbyanN,abyan7676,vendor,Abyan1067,981981981981,approved
 26,banyu@gmail.com,banyuwangi,babanyu,vendor,banyubau,111122223333,approved
+27,bimbang@gmail.com,Bimbang Purnama,BimbangPurnama,user,bimbang123,751751751751,approved
+28,bumbang@gmail.com,Bumbang Purnama,BumbangPurnama,vendor,bumbang123,651651651651,approved
+29,indomiecabeijo@gmail.com,Cabe Ijo,cabeijoenak,user,miepalingenak,675675675675,approved
