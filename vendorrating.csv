@@ -1,0 +1,7 @@
+id,user_id,vendor_id,rating,review
+id,rental_id,product_id,vendor_id,user_id,rating,review
+1,51001,71001,16,21,5,"Kamera sangat bagus untuk acara wedding, hasil foto memuaskan"
+2,51003,71001,16,22,4,"Barang sesuai deskripsi dan pengiriman cepat"
+3,51004,71002,16,24,5,"Kondisi kamera sangat baik dan packing rapi"
+4,51005,71001,16,25,4,"Harga sesuai kualitas, vendor responsif"
+
