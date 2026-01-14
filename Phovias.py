@@ -50,7 +50,16 @@ def opsi():
 
 def load_users():
     if not os.path.exists(FILE_PATH):
-        df = pd.DataFrame(columns=["id", "email", "first_name","last_name", "role", "password","ktp"])
+        df = pd.DataFrame(columns=[
+            "id",
+            "email",
+            "name",
+            "username",
+            "role",
+            "password",
+            "ktp",
+            "approval_status"
+        ])
         df.to_csv(FILE_PATH, index=False)
     return pd.read_csv(FILE_PATH)
 
@@ -63,7 +72,12 @@ def load_cameras():
 def load_vendors():
     if not os.path.exists(VENDOR_FILE):
         df = pd.DataFrame(columns=[
-            "id", "user_id", "shop_name", "description", "address"
+            "id",
+            "user_id",
+            "shop_name",
+            "description",
+            "address",
+            "approval_status"
         ])
         df.to_csv(VENDOR_FILE, index=False)
     return pd.read_csv(VENDOR_FILE)
@@ -443,13 +457,18 @@ def register_user():
         "username": username,
         "role": "user",
         "password": password,
-        "ktp": id_card
+        "ktp": id_card,
+        "approval_status": "pending"
     }
 
     df = pd.concat([df, pd.DataFrame([new_user])], ignore_index=True)
     df.to_csv(FILE_PATH, index=False)
 
-    print(f"\nRegistration successful.\nHello, {name}. Your account is ready to use.\n")
+    print(
+    "\nRegistration successful.\n"
+    "Your account is waiting for admin approval.\n"
+    "Please login after your account has been approved.\n"
+)
 
 
 def login_user():
@@ -459,27 +478,29 @@ def login_user():
     print("LOG IN".center(indentasi))
     print("Input your account".center(indentasi))
     print(subliner)
-    email = input("Email: ").strip()
 
+    email = input("Email: ").strip()
     if not email:
         print("Email cannot be empty.\n")
         return
-    
+
     user = df[df["email"] == email]
-    
     if user.empty:
         print("Account with this email does not exist.\n")
         return
-    
-    password = input("Password: ")
 
+    password = input("Password: ")
     if user.iloc[0]["password"] != password:
         print("Incorrect password.\n")
-        return 
+        return
+
+    # 🔒 BLOK JIKA BELUM APPROVED
+    if user.iloc[0]["approval_status"] != "approved":
+        print("Your account is waiting for admin approval.\n")
+        return
 
     u = user.iloc[0]
     print(f"\nLogin successful.\nHello there, {u['name']} ({u['role']}).\n")
-
     return u.to_dict()
 
 
@@ -1012,7 +1033,8 @@ def register_vendor(user):
         "user_id": user["id"],
         "shop_name": store_name,
         "description": description,
-        "address": address
+        "address": address,
+        "approval_status": "pending"
     }
 
     df_vendors = pd.concat(
@@ -1022,12 +1044,14 @@ def register_vendor(user):
     df_vendors.to_csv(VENDOR_FILE, index=False)
 
     # UPDATE USER ROLE
-    df_users.loc[df_users["id"] == user["id"], "role"] = "vendor"
-    df_users.to_csv(FILE_PATH, index=False)
+    # df_users.loc[df_users["id"] == user["id"], "role"] = "vendor"
+    # df_users.to_csv(FILE_PATH, index=False)
 
-    user["role"] = "vendor"
+    # user["role"] = "vendor"
 
-    print("Registration successful. You are now a Lender.\n")
+    print("Vendor registration submitted successfully.\n"
+        "Please wait for admin approval before becoming a vendor.\n"
+    )
     return user
 
 def simpan_proposal_sewa(rental):
@@ -1591,9 +1615,11 @@ def print_admin_menu():
     print(liner)
     print("1. Show all users/vendors")
     print("2. Delete user/vendor account")
-    print("3. Rental history")
-    print("4. Transaction history")
-    print("5. Log out")
+    print("3. Approve user accounts")
+    print("4. Approve vendor accounts")
+    print("5. Rental history")
+    print("6. Transaction history")
+    print("7. Log out")
     
 def admin_menu():
     while True:
@@ -1601,7 +1627,7 @@ def admin_menu():
         
         while True:
             choice = input("\n> ")
-            if choice in {"1", "2", "3", "4", "5"}:
+            if choice in {"1", "2", "3", "4", "5", "6", "7"}:
                 break
             else:
                 print("Invalid choice")
@@ -1611,14 +1637,109 @@ def admin_menu():
         elif choice == "2":
             delete_account()
         elif choice == "3":
-            view_rental_history()
+            approve_users()
         elif choice == "4":
-            view_transaction_history()
+            approve_vendors()
         elif choice == "5":
+            view_rental_history()
+        elif choice == "6":
+            view_transaction_history()
+        elif choice == "7":
             print("Logged out.\n")
             return
 
 #! KELAR
+
+def approve_users():
+    df = load_users()
+
+    pending = df[df["approval_status"] == "pending"]
+
+    if pending.empty:
+        enter_to_back("No pending user approvals.")
+        return
+
+    print("\nPENDING USER APPROVALS")
+    print(miniliner)
+
+    for _, row in pending.iterrows():
+        print(f"[{row['id']}] {row['name']} | {row['email']}")
+
+    print("\n[ID] approve user")
+    print("[Enter] back")
+
+    uid = input("\n> ").strip()
+    if uid == "":
+        return
+    if not uid.isdigit():
+        print("Invalid ID.")
+        return
+
+    uid = int(uid)
+
+    if uid not in pending["id"].values:
+        print("User not found or already approved.")
+        return
+
+    print("Approve this user? [y/n]")
+    if not confirm_action():
+        return
+
+    df.loc[df["id"] == uid, "approval_status"] = "approved"
+    save_users(df)
+
+    print("User successfully approved.")
+    
+def approve_vendors():
+    df_vendors = load_vendors()
+    df_users = load_users()
+
+    pending = df_vendors[df_vendors["approval_status"] == "pending"]
+
+    if pending.empty:
+        enter_to_back("No pending vendor approvals.")
+        return
+
+    print("\nPENDING VENDOR APPROVALS")
+    print(miniliner)
+
+    for _, row in pending.iterrows():
+        print(
+            f"[{row['id']}] {row['shop_name']} | "
+            f"User ID: {row['user_id']}"
+        )
+
+    print("\n[ID] approve vendor")
+    print("[Enter] back")
+
+    vid = input("\n> ").strip()
+    if vid == "":
+        return
+    if not vid.isdigit():
+        print("Invalid ID.")
+        return
+
+    vid = int(vid)
+
+    if vid not in pending["id"].values:
+        print("Vendor not found or already approved.")
+        return
+
+    print("Approve this vendor? [y/n]")
+    if not confirm_action():
+        return
+
+    # approve vendor
+    df_vendors.loc[df_vendors["id"] == vid, "approval_status"] = "approved"
+
+    # ubah role user jadi vendor
+    user_id = df_vendors.loc[df_vendors["id"] == vid, "user_id"].iloc[0]
+    df_users.loc[df_users["id"] == user_id, "role"] = "vendor"
+
+    df_vendors.to_csv(VENDOR_FILE, index=False)
+    df_users.to_csv(FILE_PATH, index=False)
+
+    print("Vendor approved successfully.")
 
 def render_user(row):
     print(f"- ID {row['id']} | {row['name']} ({row['role']})")
