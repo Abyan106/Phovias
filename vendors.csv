@@ -1,6 +1,7 @@
-id,user_id,shop_name,description,address
-1,8,bumbung,jual aki,jalan jalan
-2,10,Testingvendor,ini toko testing,di testing
-16,16,maytedted,tee,mayted
-23,23,abc store,cameras,"cibiru wetan, no.1/no.2, makan-makan"
-25,25,Abyan Store,Renting cameras,"Cibiru wetan, no.7, new york"
+id,user_id,shop_name,description,address,approval_status
+1,8,bumbung,jual aki,jalan jalan,approved
+2,10,Testingvendor,ini toko testing,di testing,approved
+16,16,maytedted,tee,mayted,approved
+23,23,abc store,cameras,"cibiru wetan, no.1/no.2, makan-makan",approved
+25,25,Abyan Store,Renting cameras,"Cibiru wetan, no.7, new york",approved
+26,26,banyunta,jhgjagsdfghjk,"jalan hilimaya no 44, jakarta ujung",approved
