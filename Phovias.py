@@ -14,7 +14,22 @@
 import pandas as pd
 import numpy as np
 import os
+from getpass import getpass as gtp
+from datetime import datetime as dt, timedelta
 
+# ===========================================
+# TEMPLATE
+# ===========================================
+
+def parse_date(prompt):
+    while True:
+        s = input(f"{prompt} (YYYY-MM-DD) [q] cancel: ").strip()
+        if s.lower() == "q":
+            return None
+        try:
+            return dt.strptime(s, "%Y-%m-%d").date()
+        except ValueError:
+            print("❌ Format harus YYYY-MM-DD.")
 # ===========================================
 # ASSET BUAT HEADER
 # ===========================================
@@ -167,9 +182,9 @@ def paginate_select(df, render_func, per_page=5, title="DATA LIST", select_label
             if uid in df["id"].values:
                 return uid
             else:
-                print("❌ Invalid User ID.")
+                print(" Invalid User ID.")
         else:
-            print("❌ Invalid input.")
+            print(" Invalid input.")
 
 def paginate(df, render_func, per_page=5, title="DATA LIST"):
     if df.empty:
@@ -499,12 +514,11 @@ def login_user():
         print("Account with this email does not exist.\n")
         return
 
-    password = input("Password: ")
+    password = gtp("Password: ")
     if user.iloc[0]["password"] != password:
         print("Incorrect password.\n")
         return
 
-    # 🔒 BLOK JIKA BELUM APPROVED
     if user.iloc[0]["approval_status"] != "approved":
         print("Your account is waiting for admin approval.\n")
         return
@@ -537,7 +551,9 @@ def user_menu(user):
         print("8. Rating Vendor")
         print("9. Edit Profile")
         print("10. Your rental req")
-        print("11. Log out")
+        print("11. Rental history")
+        print("12. Payment history")
+        print("13. Log out")
 
         choice = input("\n> ")
 
@@ -568,64 +584,15 @@ def user_menu(user):
         elif choice == "9":
             edit_profile_menu(user)
         elif choice == "10":
-            lihat_rental_user(user)
+            
+            histori_rental_user(user)
         elif choice == "11":
+            histori_pembayaran_user(user)
+        elif choice == "12":
             print("Logged out.\n")
             break
         else:
             print("Your choice is invalid.\n")
-
- 
-def hari_dalam_bulan(bulan):
-    if bulan == 2:
-        return 28
-    if bulan in [4]:
-        return 30
-    return 31
-
-def tanggal_ke_hari(bulan, hari):
-    total = 0
-
-    for b in range(1, bulan):
-        total += hari_dalam_bulan(b)
-
-    total += hari
-    return total
-
-   
-def input_tanggal(label):
-    print(f"\n{label} (2026 only) [q] to cancel.\n")
-
-    while True:
-        bulan = input("Month (1-5): ").strip()
-        if bulan.lower() == "q":
-            return None, None
-        if not bulan.isdigit():
-            print("Month must be a number.")
-            continue
-        bulan = int(bulan)
-        if not 1 <= bulan <= 5:
-            print("Month must be 1-12.")
-            continue
-        break
-
-    max_hari = hari_dalam_bulan(bulan)
-    while True:
-        hari = input(f"Day (1-{max_hari}): ").strip()
-        if hari.lower() == "q":
-            return None, None
-        if not hari.isdigit():
-            print("Day must be a number.")
-            continue
-        hari = int(hari)
-        if not 1 <= hari <= max_hari:
-            print(f"Invalid day. This month has {max_hari} days.")
-            continue
-        break
-
-    tanggal_str = f"2026-{bulan:02d}-{hari:02d}"
-    tanggal_int = tanggal_ke_hari(bulan, hari)
-    return tanggal_str, tanggal_int
 
 def lihat_rental_user(user):
     df_rentals = load_rentals()
@@ -636,6 +603,9 @@ def lihat_rental_user(user):
     if my_rentals.empty:
         enter_to_back("📭 You have no rental requests.")
         return
+    
+    df_rentals = df_rentals[df_rentals["status"] != "Rejected (out of stock)"]
+    df_rentals.to_csv(RENTAL_FILE, index=False)
 
     print(f"\n\n\nYOUR RENTAL REQUESTS\n{miniliner}")
     for key, series in my_rentals.iterrows():
@@ -676,9 +646,9 @@ def manage_rental_user(user, rid):
         print("This rental does not belong to you.")
         return
 
-    if r["status"] != "Waiting for approval":
-        enter_to_back("This rental no longer can be edited or deleted")
-        return lihat_rental_user(user)
+    if "Rejected" in r["status"]:
+        print("❌ This rental request was rejected due to stock unavailability.")
+        return
 
     print(f"\n\n\nMANAGE RENTAL\n{miniliner}")
     print("1. Edit\n2. Cancel")
@@ -687,7 +657,7 @@ def manage_rental_user(user, rid):
     choice = input("> ").strip()
 
     while True:
-        if choice == " ":
+        if choice == "":
             return
         if choice == "1":
             edit_rental_user(df, r)
@@ -709,8 +679,6 @@ def edit_rental_user(df, rental):
     new_address = input("New address: ").strip()
     if new_address == "q":
         return
-    # if new_address == "d":
-    #     df.loc[idx, "address"] = ""
     if new_address == "c":
         pass
     if new_address:
@@ -731,27 +699,31 @@ def edit_rental_user(df, rental):
     print("[y] yes    [n] no")
     if input("> ").lower() == "y":
 
-        tgl_mulai_str, tgl_mulai_int = input_tanggal("New start date")
-        if tgl_mulai_str is None:
+        today = dt.date.today()
+
+        start_date = parse_date("New start date")
+        if not start_date:
             print("Date change cancelled.")
             return
 
-        tgl_selesai_str, tgl_selesai_int = input_tanggal("New end date")
-        if tgl_selesai_str == None:
+        end_date = parse_date("New end date")
+        if not end_date:
             print("Date change cancelled.")
             return
 
-        if tgl_selesai_int <= tgl_mulai_int:
-            print("End date must be AFTER start date.")
+        if start_date <= today:
+            print("❌ Start date must be after today.")
             return
 
-        lama_sewa = tgl_selesai_int - tgl_mulai_int
+        if end_date <= start_date:
+            print("❌ End date must be AFTER start date.")
+            return
+
+        lama_sewa = (end_date - start_date).days
         print(f"New rental duration: {lama_sewa} days")
 
-        df.loc[idx, "start_date"] = tgl_mulai_str
-        df.loc[idx, "end_date"] = tgl_selesai_str
-        df.loc[idx, "start_day_int"] = tgl_mulai_int
-        df.loc[idx, "end_day_int"] = tgl_selesai_int
+        df.loc[idx, "start_date"] = start_date.isoformat()
+        df.loc[idx, "end_date"] = end_date.isoformat()
 
     df.to_csv(RENTAL_FILE, index=False)
     print("Updated.")
@@ -783,8 +755,14 @@ Condition    : {cam['condition']}
 Status       : {cam['status']}
 """)
 
-    if cam["status"] != "Available" or int(cam["stock"]) <= 0:
-        print("Product is not available for rent.")
+    if int(cam["stock"]) <= 0:
+        print("❌ This product is out of stock.")
+        enter_to_back()
+        return False
+
+    if cam["status"].lower() != "available":
+        print("❌ This product is currently unavailable.")
+        enter_to_back()
         return False
 
     print("Would you like to rent this product?")
@@ -839,25 +817,55 @@ def pilih_dan_baca_produk(df, user):
             view_camera_detail(cam.iloc[0], user)
     
 def ajukan_sewa(cam, user):
+    df_cameras = load_cameras()
+    latest_cam = df_cameras[df_cameras["id"] == cam["id"]]
+    df_rentals = load_rentals()
+
+    existing = df_rentals[
+        (df_rentals["user_id"] == user["id"]) &
+        (df_rentals["product_id"] == cam["id"]) &
+        (df_rentals["status"] == "Waiting for approval")
+    ]
+    
+    if cam["vendor_id"] == user["id"]:
+        print("❌ You cannot rent your own product.")
+        enter_to_back()
+        return False
+
+    if not existing.empty:
+        print("❌ You already have a pending rental request for this product.")
+        enter_to_back()
+        return False
+
+    if latest_cam.empty or int(latest_cam.iloc[0]["stock"]) <= 0:
+        print("❌ Sorry, this item is no longer available.")
+        enter_to_back()
+        return False
+    
     print("\n\n\nRENTAL APPLICATION")
     print(miniliner)
 
-    tgl_mulai_str, tgl_mulai_int = input_tanggal("Start Date")
-    if tgl_mulai_str is None:
-        print("Rental request cancelled.")
+    today = dt.date.today()
+
+    start_date = parse_date("Start date")
+    if not start_date:
         return False
 
-    tgl_selesai_str, tgl_selesai_int = input_tanggal("End Date")
-    if tgl_selesai_str is None:
-        print("Rental request cancelled.")
+    end_date = parse_date("End date")
+    if not end_date:
         return False
 
-    if tgl_selesai_int <= tgl_mulai_int:
-        print("End date must be after start date.")
+    if start_date <= today:
+        print("❌ Start date must be after today.")
         return False
 
-    lama_sewa = tgl_selesai_int - tgl_mulai_int
+    if end_date <= start_date:
+        print("❌ End date must be after start date.")
+        return False
+
+    lama_sewa = (end_date - start_date).days
     print(f"Rental duration: {lama_sewa} days")
+
 
     while True:
         print("\nReason for rental:")
@@ -933,10 +941,8 @@ def ajukan_sewa(cam, user):
         "user_id": user["id"],
         "product_id": cam["id"],
         "vendor_id": cam["vendor_id"],
-        "start_date": tgl_mulai_str,
-        "end_date": tgl_selesai_str,
-        "start_day_int": tgl_mulai_int,
-        "end_day_int": tgl_selesai_int,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "address": address,
         "alasan": alasan,
         "notes": notes,
@@ -1072,8 +1078,7 @@ def register_vendor(user):
             continue
         break
 
-    # bikin data vendor nya
-    new_id = user["id"]  # <-- ganti ID vendor sama dengan ID user
+    new_id = user["id"] 
 
     new_vendor = {
         "id": new_id,
@@ -1089,12 +1094,6 @@ def register_vendor(user):
         ignore_index=True
     )
     df_vendors.to_csv(VENDOR_FILE, index=False)
-
-    # UPDATE USER ROLE
-    # df_users.loc[df_users["id"] == user["id"], "role"] = "vendor"
-    # df_users.to_csv(FILE_PATH, index=False)
-
-    # user["role"] = "vendor"
 
     print("Vendor registration submitted successfully.\n"
         "Please wait for admin approval before becoming a vendor.\n"
@@ -1180,76 +1179,6 @@ def list_all_cameras(user):
         return
     pilih_dan_baca_produk(df, user)
 
-def input_payment_date_strict(start_day, approval_day):
-    tahun, sm, sd = map(int, start_day.split("-"))
-    tahun, am, ad = map(int, approval_day.split("-"))
-
-    start_day_num = tanggal_ke_hari(sm, sd)
-    approval_day_num = tanggal_ke_hari(am, ad)
-    batas_pembayaran = start_day_num - 3
-
-    while True:
-        print("\nPAYMENT DATE INPUT")
-        print("Rules:")
-        print("- Payment must be AFTER approval")
-        print("- Payment must be at least 3 days before rental start")
-        print("[q] Cancel")
-
-        bulan = input("Month (1-12): ").strip()
-        if bulan.lower() == "q":
-            return None
-        if not bulan.isdigit():
-            print("Month must be a number.")
-            continue
-
-        bulan = int(bulan)
-        if bulan < 1 or bulan > 5:
-            print("Month must be between 1 and 5.")
-            continue
-
-        if bulan < am:
-            print("Payment month cannot be before approval month.")
-            continue
-        if bulan > sm:
-            print("Payment month cannot be after rental start month.")
-            continue
-
-        hari = input("Day: ").strip()
-        if hari.lower() == "q":
-            return None
-        if not hari.isdigit():
-            print("Day must be a number.")
-            continue
-
-        hari = int(hari)
-        if hari < 1 or hari > 31:
-            print("Invalid day.")
-            continue
-
-        if bulan == am and hari < ad:
-            print("Payment date cannot be before approval date.")
-            continue
-
-        if bulan == sm and hari > sd - 3:
-            print("Payment must be at least 3 days before rental start.")
-            continue
-
-        payment_day = tanggal_ke_hari(bulan, hari)
-
-        if payment_day == approval_day_num:
-            return f"2026-{bulan:02d}-{hari:02d}"
-
-        if payment_day < approval_day_num:
-            print("Payment date cannot be before approval date.")
-            continue
-
-        if payment_day > batas_pembayaran:
-            print("Payment must be at least 3 days before rental start.")
-            continue
-
-        return f"2026-{bulan:02d}-{hari:02d}"
-
-
 def bayar_sewa(user):
     df_rental = load_rentals()
     df_bayar = load_pembayaran()
@@ -1304,13 +1233,30 @@ Status       : {kanan['status']}
 
     methods = methods_map[pilih]
 
-    start_day = rental.iloc[0]["start_date"]
-    approval_day = rental.iloc[0]["approval_date"]
+    approval_date = dt.strptime(
+        rental.iloc[0]["approval_date"], "%Y-%m-%d"
+    ).date()
 
-    payment_date = input_payment_date_strict(start_day, approval_day)
-    if not payment_date:
-        return
+    start_date = dt.strptime(
+        rental.iloc[0]["start_date"], "%Y-%m-%d"
+    ).date()
 
+    deadline = start_date - timedelta(days=3)
+
+    while True:
+        pay_date = parse_date("Payment date")
+        if not pay_date:
+            return
+
+        if pay_date < approval_date:
+            print("❌ Payment cannot be before approval.")
+            continue
+
+        if pay_date > deadline:
+            print("❌ Payment must be at least 3 days before rental.")
+            continue
+
+        break
     
     total_tagihan = rental.iloc[0]["total_amount"]
 
@@ -1326,13 +1272,13 @@ Status       : {kanan['status']}
             return
 
         if not bayar.isdigit():
-            print("❌ Payment must be numeric.")
+            print(" Payment must be numeric.")
             continue
 
         bayar = int(bayar)
 
         if bayar != total_tagihan:
-            print("❌ Amount does not match the bill.")
+            print(" Amount does not match the bill.")
             continue
         break
 
@@ -1351,7 +1297,7 @@ Status       : {kanan['status']}
         "total_payment": rental.iloc[0]["total_amount"],
         "methods": methods,
         "status": "success",
-        "payment_date": payment_date
+        "payment_date": pay_date.isoformat()
     }
 
     df_bayar = pd.concat(
@@ -1584,9 +1530,6 @@ Status        : {kanan['status']}
 
     print("\n[ID] to return rental.\n[Enter] cancel.")
     rid = input("\n> ")
-    # if not rid.isdigit():
-    #     print("Cancelled.")
-    #     return
     if rid == "":
         print("Cancelled.")
         return
@@ -1663,9 +1606,62 @@ Status        : {kanan['status']}
         rating_df.to_csv(RATING_FILE, index=False)
 
 
+def histori_rental_user(user):
+    df = load_rentals()
+    df_vendors = load_vendors()
 
-    # print("Item returned successfully. Waiting for vendor confirmation.")
+    histori = df[df["user_id"] == user["id"]]
+
+    if histori.empty:
+        enter_to_back("📭 You have no rental history.")
+        return
+
+    print(f"\n\n\nYOUR RENTAL HISTORY\n{miniliner}")
+    for _, r in histori.iterrows():
+        vendor = df_vendors[df_vendors["id"] == r["vendor_id"]]
+        vendor_name = vendor.iloc[0]["shop_name"] if not vendor.empty else "Vendor"
+
+        print(f"""Rental ID   : {r['id']}
+Product ID  : {r['product_id']}
+Vendor      : {vendor_name}
+Date        : {r['start_date']} ─ {r['end_date']}
+Status      : {r['status']}
+Total       : Rp{r['total_amount']}
+-------------------------
+""")
+
+    enter_to_back()
     
+def histori_pembayaran_user(user):
+    df_bayar = load_pembayaran()
+    df_rental = load_rentals()
+
+    rental_user = df_rental[df_rental["user_id"] == user["id"]]
+    if rental_user.empty:
+        enter_to_back("📭 No payment history.")
+        return
+
+    rental_ids = rental_user["id"].tolist()
+
+    histori = df_bayar[df_bayar["rental_id"].isin(rental_ids)]
+
+    if histori.empty:
+        enter_to_back("📭 No payment history.")
+        return
+
+    print(f"\n\n\nYOUR PAYMENT HISTORY\n{miniliner}")
+    for _, p in histori.iterrows():
+        print(f"""Payment ID  : {p['id']}
+Rental ID   : {p['rental_id']}
+Method      : {p['methods']}
+Amount      : Rp{p['total_payment']}
+Date        : {p['payment_date']}
+Status      : {p['status']}
+-------------------------
+""")
+
+    enter_to_back()
+
 
 def edit_profile_menu(user):
     while True:
@@ -1738,7 +1734,7 @@ def ubah_password(user):
     df = load_users()
 
     print("[q] to cancel at anytime.")
-    old_password = input("Enter current password: ").strip()
+    old_password = gtp("Enter current password: ").strip()
 
     if old_password == "q":
         print("Cancelled.\n")
@@ -1748,7 +1744,7 @@ def ubah_password(user):
         print("Current password is incorrect.")
         return
 
-    new_password = input("Enter new password: ").strip()
+    new_password = gtp("Enter new password: ").strip()
 
     if new_password == "q":
         print("Cancelled.\n")
@@ -1964,7 +1960,7 @@ def delete_account():
         )
 
         if uid is None:
-            return  # user quit
+            return 
 
         if not show_user_detail(uid):
             continue
@@ -2163,7 +2159,9 @@ def vendor_menu(user):
         print("7. View all product reviews")
         print("8. Edit product")
         print("9. Monthly report")
-        print("10. Log out")
+        print("10. Rental history")
+        print("11. Payment history")
+        print("12. Log out")
 
         choice = input("\n> ")
 
@@ -2186,10 +2184,28 @@ def vendor_menu(user):
         elif choice == "9":
             monthly_report(user)
         elif choice == "10":
+            histori_rental_vendor(user)
+        elif choice == "11":
+            histori_pembayaran_vendor(user)
+        elif choice == "12":
             print("Exited vendor menu.\n")
             break
         else:
             print("Your choice is invalid.\n")
+
+def hitung_denda(end_date, harga, persen=0.1):
+    end_date = dt.strptime(end_date, "%Y-%m-%d").date()
+    
+    today = dt.today().date()
+    telat = (today - end_date).days
+    
+    if telat > 1:
+        hari_denda = telat - 1
+        denda_per_hari = int(harga * persen)
+        total_denda = hari_denda * denda_per_hari
+        return hari_denda, total_denda
+    
+    return 0, 0
 
 #! KELAR
 def add_camera(user):
@@ -2430,16 +2446,18 @@ def proses_proposal(pid):
 
     proposal = df.loc[idx]
 
-    start_date = proposal["start_date"]  
-    _, sm, sd = start_date.split("-")
-    sm, sd = int(sm), int(sd)
+    # === PARSE START DATE ===
+    start_date = dt.strptime(proposal["start_date"], "%Y-%m-%d").date()
 
-    start_day_int = tanggal_ke_hari(sm, sd)
-    batas_approval = start_day_int - 7  
+    # === REAL TIME TODAY ===
+    today = dt.now().date()
+
+    batas_approval = start_date - timedelta(days=7)
 
     print("\nApprove this rental proposal?")
     print("     [y] yes   [n] no   [q] cancel")
     print(f"Rental start date : {start_date}")
+    print(f"Today             : {today}")
     print("Approval must be at least 7 days BEFORE rental start")
 
     while True:
@@ -2452,58 +2470,20 @@ def proses_proposal(pid):
         if choice == "n":
             df.loc[idx, "status"] = "Rejected"
             df.to_csv(RENTAL_FILE, index=False)
-            print("❌ Proposal rejected.")
+            print(" Proposal rejected.")
             return
 
         if choice == "y":
-            print("\nAPPROVAL DATE INPUT")
-            print("[q] Cancel")
-
-            while True:
-                bulan = input("Month (1-5): ").strip()
-                if bulan.lower() == "q":
-                    print("Cancelled.")
-                    return
-                if not bulan.isdigit():
-                    print("Month must be a number.")
-                    continue
-
-                bulan = int(bulan)
-                if not 1 <= bulan <= 5:
-                    print("Month must be between 1 and 5.")
-                    continue
-                break
-
-            max_hari = hari_dalam_bulan(bulan)
-            while True:
-                hari = input(f"Day (1-{max_hari}): ").strip()
-                if hari.lower() == "q":
-                    print("Cancelled.")
-                    return
-                if not hari.isdigit():
-                    print("Day must be a number.")
-                    continue
-
-                hari = int(hari)
-                if not 1 <= hari <= max_hari:
-                    print(f"Invalid day. This month has {max_hari} days.")
-                    continue
-                break
-
-            approval_day_int = tanggal_ke_hari(bulan, hari)
-
-            if approval_day_int > batas_approval:
-                print("❌ Approval date is too late.")
+            if today > batas_approval:
+                print(" Approval date is too late.")
                 print("Approval must be at least 7 days BEFORE rental start.")
-                continue
-
-            approval_date_str = f"2026-{bulan:02d}-{hari:02d}"
+                return
 
             df.loc[idx, "status"] = "Waiting for payment"
-            df.loc[idx, "approval_date"] = approval_date_str
+            df.loc[idx, "approval_date"] = today.strftime("%Y-%m-%d")
             df.to_csv(RENTAL_FILE, index=False)
 
-            print("✅ Proposal approved.")
+            print(" Proposal approved.")
             print("Waiting for user payment.")
             return
 
@@ -2589,10 +2569,15 @@ def update_stock_kamera(product_id, jumlah):
         print("Insufficient stock.")
         return False
 
-    df_cam.loc[idx, "stock"] = stock_baru
+    df_cam.loc[idx[0], "stock"] = stock_baru
+
+    if stock_baru == 0:
+        df_cam.loc[idx[0], "status"] = "Unavailable"
+    else:
+        df_cam.loc[idx[0], "status"] = "Available"
+
     df_cam.to_csv(PRODUK_FILE, index=False)
     return True
-
 
 def kirim_barang(user):
     df = load_rentals()
@@ -2642,12 +2627,29 @@ Status       : {value['status']}
         df.loc[idx, "status"] = "Sent"
         df.to_csv(RENTAL_FILE, index=False)
 
-        update_stock_kamera(df.loc[idx[0], "product_id"], -1)
+        # 2. Kurangi stok produk
+        product_id = df.loc[idx[0], "product_id"]
+        update_stock_kamera(product_id, -1)
+
+        # 3. Kalau stok jadi 0 → tolak proposal lain
+        df = load_rentals()  # reload biar data fresh
+        df.loc[
+            (df["product_id"] == product_id) &
+            (df["status"] == "Waiting for approval"),
+            "status"
+        ] = "Rejected (out of stock)"
+        df.to_csv(RENTAL_FILE, index=False)
+
+        # 4. Sinkron status kamera
+        normalize_camera_status()
+
         print("🚚 Product sent.")
         break
+
     
 def konfirmasi_pengembalian(user):
     df = load_rentals()
+    df_produk = load_cameras()
 
     pending = df[
         (df["vendor_id"] == user["id"]) &
@@ -2680,19 +2682,46 @@ Status       : {value['status']}
 
         rid = int(rid)
         idx = df[df["id"] == rid].index
-
         if idx.empty:
             print("Rental not found.")
             continue
+        rental = df.loc[idx[0]]
+        produk = df_produk[df_produk["id"] == rental["product_id"]]
 
-        print("Confirm product has been returned? [y/n]")
-        if not confirm_action():
+        if produk.empty:
+            print("Product data not found.")
             return
+
+        harga = int(produk.iloc[0]["rental_fee"])
+
+        hari_telat, total_denda = hitung_denda(
+            rental["end_date"],
+            harga
+        )
+
+        if total_denda > 0:
+            print(f"""
+            LATE RETURN DETECTED
+            Late days : {hari_telat}
+            Penalty  : Rp {total_denda:,}
+            """)
+            print("Confirm return WITH penalty? [y/n]")
+            if not confirm_action():
+                return
+
+            df.loc[idx, "total_amount"] += total_denda
+        else:
+            print("Returned on time. No penalty.")
+
+            print("Confirm product has been returned? [y/n]")
+            if not confirm_action():
+                return
 
         df.loc[idx, "status"] = "Completed"
         df.to_csv(RENTAL_FILE, index=False)
 
-        update_stock_kamera(df.loc[idx[0], "product_id"], 1)
+        update_stock_kamera(rental["product_id"], 1)
+
         print("Product returned. Rental completed.")
         break
 
@@ -2930,6 +2959,78 @@ EDIT MENU
         df.to_csv(PRODUK_FILE, index=False)
         print("Product updated successfully.")
 
+def histori_rental_vendor(user):
+    df = load_rentals()
+    df_users = load_users()
+    df_products = load_cameras()
+
+    histori = df[df["vendor_id"] == user["id"]]
+
+    if histori.empty:
+        enter_to_back("📭 No rental history.")
+        return
+
+    print(f"\n\n\nYOUR RENTAL HISTORY (VENDOR)\n{miniliner}")
+    for _, r in histori.iterrows():
+
+        user_row = df_users[df_users["id"] == r["user_id"]]
+        username = user_row.iloc[0]["username"] if not user_row.empty else "User"
+
+        product = df_products[df_products["id"] == r["product_id"]]
+        product_name = product.iloc[0]["product_name"] if not product.empty else "Product"
+
+        print(f"""Rental ID   : {r['id']}
+Product     : {product_name}
+Rented by   : {username}
+Date        : {r['start_date']} ─ {r['end_date']}
+Status      : {r['status']}
+Total       : Rp{r['total_amount']}
+-------------------------
+""")
+
+    enter_to_back()
+
+def histori_pembayaran_vendor(user):
+    df_pay = load_pembayaran()
+    df_rentals = load_rentals()
+    df_products = load_cameras()
+
+    rental_vendor = df_rentals[df_rentals["vendor_id"] == user["id"]]
+
+    if rental_vendor.empty:
+        enter_to_back("📭 No payment history.")
+        return
+
+    rental_ids = rental_vendor["id"].tolist()
+    histori = df_pay[df_pay["rental_id"].isin(rental_ids)]
+
+    if histori.empty:
+        enter_to_back("📭 No payment history.")
+        return
+
+    total_income = 0
+
+    print(f"\n\n\nPAYMENT HISTORY (VENDOR)\n{miniliner}")
+    for _, p in histori.iterrows():
+
+        rental = rental_vendor[rental_vendor["id"] == p["rental_id"]].iloc[0]
+        product = df_products[df_products["id"] == rental["product_id"]]
+        product_name = product.iloc[0]["product_name"] if not product.empty else "Product"
+
+        total_income += p["total_payment"]
+
+        print(f"""Payment ID : {p['id']}
+Rental ID  : {p['rental_id']}
+Product    : {product_name}
+Method     : {p['methods']}
+Amount     : Rp{p['total_payment']:,}
+Date       : {p['payment_date']}
+-------------------------
+""")
+
+    print(f"TOTAL INCOME : Rp{total_income:,}")
+    enter_to_back()
+
 
 def monthly_report(user):
     df_rentals = load_rentals()
@@ -3014,6 +3115,15 @@ Income      : Rp{income:,}
 # MAIN MENU
 # =========================
 
+def normalize_camera_status():
+    df = load_cameras()
+    df["stock"] = df["stock"].astype(int)
+    df["status"] = df["stock"].apply(
+        lambda x: "Available" if x > 0 else "Unavailable"
+    )
+    df.to_csv(PRODUK_FILE, index=False)
+
+
 def main_menu():
     while True:
         print(f"\n\n\n{liner}")
@@ -3045,5 +3155,6 @@ def main_menu():
 # RUN PROGRAM
 # =========================
 if __name__ == "__main__":
+    normalize_camera_status()
     main_menu()
     
