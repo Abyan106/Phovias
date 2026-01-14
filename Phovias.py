@@ -160,22 +160,20 @@ def paginate_select(df, render_func, per_page=5, title="DATA LIST", select_label
         end = start + per_page
         page_data = df.iloc[start:end]
 
-        print("\n" + liner)
-        print(title.center(indentasi))
-        print(f"Page {page + 1} of {total_page}".center(indentasi))
-        print(liner)
+        print(f"\n\n\n{title}")
+        print(f"Page {page + 1} of {total_page}\n{liner}")
 
         for kiri, row in page_data.iterrows():
             render_func(row)
 
-        print("\n[n] Next     [p] Prev     [q] Quit")
+        print("\n[n] Next     [p] Prev     [Enter] back")
         uid_input = input(select_label).strip().lower()
 
         if uid_input == "n":
             page = (page + 1) % total_page
         elif uid_input == "p":
             page = (page - 1) % total_page
-        elif uid_input == "q":
+        elif uid_input == "":
             return None
         elif uid_input.isdigit():
             uid = int(uid_input)
@@ -231,12 +229,12 @@ def enter_to_back(message=None):
     * - None → user tekan Enter (back)
     """
     if message:
-        print(message)
+        print(f"\n\n\n{message}")
 
     print("\n[Enter] back")
 
     while True:
-        pilihan = input("\n> ")
+        pilihan = input("> ")
         if pilihan == "":
             return None
         else:
@@ -254,10 +252,10 @@ def input_atau_back(df, message, id_label="ID"):
     if df.empty:
         print(message)
         enterback1()
-        input("\n> ")
+        input("> ")
         return None
     
-    pilihan = input("\n> ")
+    pilihan = input("> ")
     
     if pilihan == "":
         return None
@@ -805,7 +803,7 @@ def pilih_dan_baca_produk(df, user):
             render_func=render_camera,
             per_page=5,
             title="SEARCH RESULTS",
-            select_label="Enter Product ID to view details or [q] to quit: "
+            select_label="> "
         )
 
         if cam_id is None:
@@ -971,10 +969,6 @@ def search_camera(user):
         if key in product_name.lower():
             results.append(row)
 
-    if not results:
-        print("Camera not found.")
-        return
-
     return pd.DataFrame(results)
 
 def rekomendasi_vendor():
@@ -1000,7 +994,7 @@ def rekomendasi_vendor():
         .head(3)
     )
 
-    print("\n⭐ TOP 3 VENDOR DENGAN RATING TERTINGGI")
+    print("\n\n\n⭐ TOP 3 VENDOR DENGAN RATING TERTINGGI")
     print("-" * 40)
 
     for _, row in top3.iterrows():
@@ -1126,9 +1120,8 @@ def list_categories(user):
     for i, cat in enumerate(categories, 1):
         print(f"{i}. {cat}")
 
-    print("\n[ID] to view products.")
     print("[Enter] back")
-    pilih = input("\n> ")
+    pilih = input("> ")
 
     if pilih == "":
         return
@@ -1147,22 +1140,24 @@ def list_categories(user):
 def list_all_cameras(user):
     df = load_cameras()
     
-    print("\nALL PRODUCTS")
-    print(miniliner)
+    print(f"\nALL PRODUCTS\n{miniliner}")
 
     if df.empty:
         print("📭 No products available.")
         return
 
-    print("\nSORT BY:")
+    print("SORT BY:")
     print("1. Name (A-Z)")
     print("2. Rental Fee (Lowest)")
     print("3. Rental Fee (Highest)")
     print("4. Stock (Highest)")
     print("5. No Sorting")
+    print("\n[Enter] back")
 
     pilih = input("\n> ")
 
+    if pilih == "":
+        return     
     if pilih == "1":
         df = df.sort_values(by="product_name")
     elif pilih == "2":
@@ -1172,7 +1167,7 @@ def list_all_cameras(user):
     elif pilih == "4":
         df = df.sort_values(by="stock", ascending=False)
     elif pilih == "5":
-        pass                    
+        pass            
     else:
         print("Invalid choice.")
         return
@@ -2136,16 +2131,15 @@ def vendor_menu(user):
         print(liner)
         print("1. Add product")
         print("2. Delete product")
-        print("3. View my products")
-        print("4. View rental proposals")
-        print("5. Send product (proposal approved)")
-        print("6. Confirm product return")
-        print("7. View all product reviews")
-        print("8. Edit product")
-        print("9. Monthly report")
-        print("10. Rental history")
-        print("11. Payment history")
-        print("12. Log out")
+        print("3. View rental proposals")
+        print("4. Send product (proposal approved)")
+        print("5. Confirm product return")
+        print("6. View all product reviews")
+        print("7. View all products")
+        print("8. Monthly report")
+        print("9. Rental history")
+        print("10. Payment history")
+        print("11. Log out")
 
         choice = input("\n> ")
 
@@ -2154,24 +2148,22 @@ def vendor_menu(user):
         elif choice == "2":
             delete_camera(user)
         elif choice == "3":
-            list_my_cameras(user)
-        elif choice == "4":
             lihat_proposal_sewa(user)
-        elif choice == "5":
+        elif choice == "4":
             kirim_barang(user)
-        elif choice == "6":
+        elif choice == "5":
             konfirmasi_pengembalian(user)
-        elif choice == "7":
+        elif choice == "6":
             lihat_review_vendor(user)
-        elif choice == "8":
+        elif choice == "7":
             edit_product(user)
-        elif choice == "9":
+        elif choice == "8":
             monthly_report(user)
-        elif choice == "10":
+        elif choice == "9":
             histori_rental_vendor(user)
-        elif choice == "11":
+        elif choice == "10":
             histori_pembayaran_vendor(user)
-        elif choice == "12":
+        elif choice == "11":
             print("Exited vendor menu.\n")
             break
         else:
@@ -2199,7 +2191,8 @@ def add_camera(user):
     print("[q] cancel at any time")
     
     while True:
-        product_name = input("Product name [q to cancel]: ").strip()
+        print("Product name:")
+        product_name = input("> ").strip()
 
         if product_name.lower() == "q":
             print("Add product cancelled.")
@@ -2216,7 +2209,7 @@ def add_camera(user):
         ]
 
         if not duplikat.empty:
-            print("❌ You already have a product with this name.")
+            print("You already have a product with this name.")
             print("Please enter a different product name.")
             continue
 
@@ -2347,29 +2340,29 @@ def add_camera(user):
     ikon = "📷" if product_types == "Camera" else "🔭"
     print(f"{ikon} {product_name} has been added as {product_types.lower()} ({category})")
 
-def list_my_cameras(user):
-    df = load_cameras()
+# def list_my_cameras(user):
+#     df = load_cameras()
 
-    my_products = df[df["vendor_id"] == user["id"]]
+#     my_products = df[df["vendor_id"] == user["id"]]
 
-    print(f"\n\n\nPRODUCTS DETAILS\n{miniliner}")
+#     print(f"\n\n\nPRODUCTS DETAILS\n{miniliner}")
 
-    if my_products.empty:
-        print("📭 No products available.")
-        return
+#     if my_products.empty:
+#         print("📭 No products available.")
+#         return
 
-    for key, value in my_products.iterrows():
-        print(f"""ID            : {value['id']}
-Name          : {value['product_name']}
-Type          : {value['product_types']}
-Category      : {value['category']}
-Specification : {value['specification']}
-Description   : {value['description']}
-Rental Fee    : {value['rental_fee']}
-Stock         : {value['stock']}
-Condition     : {value['condition']}
-Status        : {value['status']}
-                """)
+#     for key, value in my_products.iterrows():
+#         print(f"""ID            : {value['id']}
+# Name          : {value['product_name']}
+# Type          : {value['product_types']}
+# Category      : {value['category']}
+# Specification : {value['specification']}
+# Description   : {value['description']}
+# Rental Fee    : {value['rental_fee']}
+# Stock         : {value['stock']}
+# Condition     : {value['condition']}
+# Status        : {value['status']}
+#                 """)
 
 def delete_camera(user):
     df = load_cameras()
@@ -2388,7 +2381,7 @@ def delete_camera(user):
 
     while True:
         opsi()
-        cid = input("\n> ").strip()
+        cid = input("> ").strip()
 
         if cid == "":
             return
@@ -2474,11 +2467,11 @@ def proses_proposal(pid):
         print("Invalid choice.")
 
 def lihat_proposal_sewa_simpel(proposals):
-    print("\nPROPOSAL LIST")
-    print(liner)
+    print("\n\n\nPROPOSAL LIST")
+    print(miniliner)
 
     for key, value in proposals.iterrows():
-        print(f"- Proposal ID {value['id']} | Product ID {value['product_id']} ({value['status']})"
+        print(f"- Proposal ID {value['id']} | Product ID {value['product_id']}"
         )
 
 def lihat_proposal_detail(pid):
@@ -2576,7 +2569,7 @@ def kirim_barang(user):
         enter_to_back()
         return
 
-    print(f"\n\n\nRENTAL PROPOSAL\n{miniliner}")
+    print(f"\n\n\nSEND PRODUCTS\n{miniliner}")
     for kiri, value in siap_kirim.iterrows():
         print(f"""Proposal ID  : {value['id']}
 Product ID   : {value['product_id']}
@@ -2588,7 +2581,7 @@ Status       : {value['status']}
 
     while True:
         opsi()
-        pid = input("\n> ").strip()
+        pid = input("> ").strip()
 
         if pid == "":
             return
@@ -2764,8 +2757,7 @@ def edit_product(user):
         input()
         return
 
-    print("\nEDIT PRODUCT")
-    print(miniliner)
+    print(f"\n\n\nALL PRODUCTS\n{miniliner}")
     for kiri, produk in my_products.iterrows():
         print(f"- ID {produk['id']} | {produk['product_name']}")
 
@@ -2795,23 +2787,22 @@ def edit_product(user):
 
     # ===== EDIT MODE =====
     while True:
-        print("""
-EDIT MENU
-1. Product name
+        print(f"\n\n\nEDIT MENU\n{miniliner}")
+        print("""1. Product name
 2. Description
 3. Specification
 4. Rental fee
 5. Stock
 6. Status (Available / Unavailable)
 7. Condition
-[q] Finish editing
-""")
+
+[Enter] back/finish""")
 
         choice = input("> ").strip().lower()
-        print("\n[q] to cancel at anytime.")
 
         if choice == "1":
             while True:
+                print("\n[q] to cancel at anytime.")
                 vendor_id = user["id"]
                 print("\nNew product name: ")
                 nama_produk_baru = input("> ")
@@ -2839,6 +2830,7 @@ EDIT MENU
             
         elif choice == "2":
             while True:
+                print("\n[q] to cancel at anytime.")
                 desc = input("New description (min 20 chars): ").strip()
 
                 if desc.lower() == "q":
@@ -2859,6 +2851,7 @@ EDIT MENU
 
         elif choice == "3":
             while True:
+                print("\n[q] to cancel at anytime.")
                 spec = input("New specification (min 20 chars): ").strip()
 
                 if spec.lower() == "q":
@@ -2878,6 +2871,7 @@ EDIT MENU
                 break
 
         elif choice == "4":
+            print("\n[q] to cancel at anytime.")
             fee = input("New rental fee: ").strip()
             if fee == "q":
                 print("Cancelled.")
@@ -2888,6 +2882,7 @@ EDIT MENU
             df.loc[idx, "rental_fee"] = int(fee)
 
         elif choice == "5":
+            print("\n[q] to cancel at anytime.")
             stock = input("New stock: ").strip()
             if stock == "q":
                 print("Cancelled.")
@@ -2901,6 +2896,7 @@ EDIT MENU
             df.loc[idx, "status"] = "Available" if stock > 0 else "Unavailable"
 
         elif choice == "6":
+            print("\n[q] to cancel at anytime.")
             print("\nStatus:\n1. Available\n2. Unavailable")
                 
             while True:
@@ -2922,6 +2918,7 @@ EDIT MENU
                     
         
         elif choice == "7":
+            print("\n[q] to cancel at anytime.")
             print("1. Excellent\n2. Good\n3. Fair")
             condition = input("> ").strip()
             mapping = {"1": "Excellent", "2": "Good", "3": "Fair"}
@@ -2930,7 +2927,7 @@ EDIT MENU
                 continue
             df.loc[idx, "condition"] = mapping[condition]
 
-        elif choice == "q":
+        elif choice == "":
             df.to_csv(PRODUK_FILE, index=False)
             print("All changes saved.")
             break
@@ -2954,21 +2951,21 @@ def histori_rental_vendor(user):
         enter_to_back("📭 No rental history.")
         return
 
-    print(f"\n\n\nYOUR RENTAL HISTORY (VENDOR)\n{miniliner}")
-    for _, r in histori.iterrows():
+    print(f"\n\n\nYOUR RENTAL HISTORY\n{miniliner}")
+    for left, right in histori.iterrows():
 
-        user_row = df_users[df_users["id"] == r["user_id"]]
+        user_row = df_users[df_users["id"] == right["user_id"]]
         username = user_row.iloc[0]["username"] if not user_row.empty else "User"
 
-        product = df_products[df_products["id"] == r["product_id"]]
+        product = df_products[df_products["id"] == right["product_id"]]
         product_name = product.iloc[0]["product_name"] if not product.empty else "Product"
 
-        print(f"""Rental ID   : {r['id']}
+        print(f"""Rental ID   : {right['id']}
 Product     : {product_name}
 Rented by   : {username}
-Date        : {r['start_date']} ─ {r['end_date']}
-Status      : {r['status']}
-Total       : Rp{r['total_amount']}
+Date        : {right['start_date']} ─ {right['end_date']}
+Status      : {right['status']}
+Total       : Rp{right['total_amount']}
 -------------------------
 """)
 
